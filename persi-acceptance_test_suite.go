@@ -5,10 +5,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"testing"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
-	"time"
-)
 
+	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
+)
 
 var (
 	patsContext helpers.SuiteContext
