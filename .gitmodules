@@ -4,3 +4,6 @@
 [submodule "vendor/github.com/onsi/gomega"]
 	path = vendor/github.com/onsi/gomega
 	url = https://github.com/onsi/gomega
+[submodule "vendor/github.com/cloudfoundry-incubator/cf-test-helpers"]
+	path = vendor/github.com/cloudfoundry-incubator/cf-test-helpers
+	url = https://github.com/cloudfoundry-incubator/cf-test-helpers.git
