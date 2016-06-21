@@ -11,11 +11,7 @@ go get github.com/onsi/gomega
 ```
 To install pats tests in your `GOPATH`:
 ```
-go get git@github.com:cloudfoundry-incubator/persi-acceptance-tests.git
-```
-or to install pats tests in the current directory:
-```
-git clone git@github.com:cloudfoundry-incubator/persi-acceptance-tests.git
+go get github.com/cloudfoundry-incubator/persi_acceptance_test
 ```
 
 # Acceptance
