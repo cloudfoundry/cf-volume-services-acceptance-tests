@@ -1,4 +1,4 @@
-package persi_acceptance
+package persi_acceptance_tests_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
+
+	. "github.com/cloudfoundry-incubator/persi_acceptance"
 )
 
 var (
