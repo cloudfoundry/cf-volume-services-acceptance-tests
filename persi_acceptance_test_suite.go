@@ -1,4 +1,4 @@
-package persi_acceptance_tests
+package persi_acceptance
 
 import (
 	. "github.com/onsi/ginkgo"

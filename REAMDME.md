@@ -9,11 +9,11 @@ Prereqs:
 go get github.com/onsi/ginkgo/ginkgo
 go get github.com/onsi/gomega
 ```
-To install cert tests in your `GOPATH`:
+To install pats tests in your `GOPATH`:
 ```
 go get git@github.com:cloudfoundry-incubator/persi-acceptance-tests.git
 ```
-or to install cert tests in the current directory:
+or to install pats tests in the current directory:
 ```
 git clone git@github.com:cloudfoundry-incubator/persi-acceptance-tests.git
 ```

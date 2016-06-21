@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+
+scripts_path=./$(dirname $0)
+eval $($scripts_path/get_paths.sh)
+
+pushd `dirname $0`
+    CONFIG=${PWD}/config
+    mkdir -p ${CONFIG}
+    CONFIG=${CONFIG}/pats.json
+
+#    mkdir -p cf-cli
+#    pushd cf-cli
+#        curl -L "https://cli.run.pivotal.io/stable?release=linux64-binary&source=github" | tar -zx
+#        ln -s ./cf /usr/bin/cf
+#    popd
+
+    echo "{
+      \"admin_user\": \"$1\",
+      \"admin_password\": \"$2\",
+      \"api\": \"$3\"
+    } "  > ${CONFIG}
+
+    pushd $PERSI_ACCEPTANCE_DIR
+        ginkgo -r -p src/github.com/cloudfoundry-incubator/persi_acceptance_test
+    popd
+popd
