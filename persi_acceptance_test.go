@@ -10,8 +10,8 @@ import (
 
 var _ = Describe("Sample", func() {
 	It("cf version", func() {
-		version := cf.Cf("version").Wait(patsConfig.DefaultTimeout)
+		version := cf.Cf("--version").Wait(DEFAULT_TIMEOUT)
 		Expect(version).To(Exit(0))
-		Expect(version).To(Say("abc"))
+		Expect(version).To(Say("version"))
 	})
 })

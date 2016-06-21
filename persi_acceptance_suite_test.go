@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
-
-	. "github.com/cloudfoundry-incubator/persi_acceptance"
+	"time"
 )
 
 var (
 	patsContext helpers.SuiteContext
 	patsConfig  helpers.Config
+
+	DEFAULT_TIMEOUT      = 30 * time.Second
 )
 
 func TestPersiAcceptance(t *testing.T) {
@@ -22,6 +23,10 @@ func TestPersiAcceptance(t *testing.T) {
 	patsConfig = helpers.LoadConfig()
 	patsContext = helpers.NewContext(patsConfig)
 	environment := helpers.NewEnvironment(patsContext)
+
+	if patsConfig.DefaultTimeout > 0 {
+		DEFAULT_TIMEOUT = patsConfig.DefaultTimeout * time.Second
+	}
 
 	BeforeSuite(func() {
 		environment.Setup()
