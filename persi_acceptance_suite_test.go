@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
+
 	"time"
 )
 
@@ -14,19 +15,23 @@ var (
 	patsContext helpers.SuiteContext
 	patsConfig  helpers.Config
 
-	DEFAULT_TIMEOUT      = 30 * time.Second
+	DEFAULT_TIMEOUT = 30 * time.Second
+
+	BROKER_URL = "http://patscephbroker.persi.cf-app.com:8999"
+	BROKER_NAME = "patscephbroker"
+
+	SERVICE_NAME = "cephfs"
+	PLAN_NAME = "free"
+	INSTANCE_NAME = "mycephfs"
 )
 
 func TestPersiAcceptance(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	patsConfig = helpers.LoadConfig()
+	defaults(&patsConfig)
 	patsContext = helpers.NewContext(patsConfig)
 	environment := helpers.NewEnvironment(patsContext)
-
-	if patsConfig.DefaultTimeout > 0 {
-		DEFAULT_TIMEOUT = patsConfig.DefaultTimeout * time.Second
-	}
 
 	BeforeSuite(func() {
 		environment.Setup()
@@ -45,4 +50,12 @@ func TestPersiAcceptance(t *testing.T) {
 	}
 
 	RunSpecsWithDefaultAndCustomReporters(t, componentName, rs)
+}
+
+func defaults(config *helpers.Config) {
+	if config.DefaultTimeout > 0 {
+		DEFAULT_TIMEOUT = config.DefaultTimeout * time.Second
+	}
+
+	config.NamePrefix = "ginkgoPATS"
 }
