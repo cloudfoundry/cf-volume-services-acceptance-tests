@@ -9,11 +9,7 @@ import (
 )
 
 var _ = Describe("Cloud Foundry Persistence", func() {
-	It("should have a version", func() {
-		version := cf.Cf("--version").Wait(DEFAULT_TIMEOUT)
-		Expect(version).To(Exit(0))
-		Expect(version).To(Say("version"))
-	})
+	// given a target, org and space from suite
 	It("should have a ginkgoPATS test org", func() {
 		orgs := cf.Cf("orgs").Wait(DEFAULT_TIMEOUT)
 		Expect(orgs).To(Exit(0))
@@ -31,38 +27,36 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		Expect(orgs).To(Say("Org:.*ginkgoPATS-ORG"))
 		Expect(orgs).To(Say("Space:.*ginkgoPATS-SPACE"))
 	})
-	Context("given a target", func() {
+	Context("given a service broker", func() {
 		BeforeEach(func() {
 			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				createServiceBroker := cf.Cf("create-service-broker", BROKER_NAME, patsConfig.AdminUser, patsConfig.AdminPassword, BROKER_URL).Wait(DEFAULT_TIMEOUT)
 				Expect(createServiceBroker).To(Exit(0))
 			})
 		})
-		It("should create a volume service broker", func() {
+		It("should have a volume service broker", func() {
 			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				serviceBrokers := cf.Cf("service-brokers").Wait(DEFAULT_TIMEOUT)
 				Expect(serviceBrokers).To(Exit(0))
 				Expect(serviceBrokers).To(Say(BROKER_NAME))
 			})
 		})
-		It("should be able to find a service in the marketplace", func() {
+		It("should not have enabled access", func() {
 			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-				marketplaceItems := cf.Cf("marketplace").Wait(DEFAULT_TIMEOUT)
-				Expect(marketplaceItems).To(Exit(0))
-				Expect(marketplaceItems).To(Say(SERVICE_NAME))
-				Expect(marketplaceItems).To(Say(PLAN_NAME))
+				serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
+				Expect(serviceAccess).To(Exit(0))
+				Expect(serviceAccess).To(Say(BROKER_NAME))
+				Expect(serviceAccess).To(Say(SERVICE_NAME + ".*" + PLAN_NAME + ".*none"))
 			})
 		})
-
-		Context("given a service broker", func() {
+		Context("given an enabled service", func() {
 			BeforeEach(func() {
 				cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 					publishService := cf.Cf("enable-service-access", SERVICE_NAME, "-o", patsContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
 					Expect(publishService).To(Exit(0))
 				})
 			})
-
-			It("should be able to enable access", func() {
+			It("should have enabled access", func() {
 				cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 					serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
 					Expect(serviceAccess).To(Exit(0))
@@ -70,41 +64,52 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					Expect(serviceAccess).To(Say(SERVICE_NAME + ".*" + PLAN_NAME + ".*limited.*" + patsContext.RegularUserContext().Org))
 				})
 			})
-
-			Context("given an enabled service", func() {
+			It("should be able to find a service in the marketplace", func() {
+				cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+					marketplaceItems := cf.Cf("marketplace").Wait(DEFAULT_TIMEOUT)
+					Expect(marketplaceItems).To(Exit(0))
+					Expect(marketplaceItems).To(Say(SERVICE_NAME))
+					Expect(marketplaceItems).To(Say(PLAN_NAME))
+				})
+			})
+			Context("given a service instance", func() {
 				BeforeEach(func() {
-					createService := cf.Cf("create-service", SERVICE_NAME, PLAN_NAME, INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
-					Expect(createService).To(Exit(0))
+					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						createService := cf.Cf("create-service", SERVICE_NAME, PLAN_NAME, INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
+						Expect(createService).To(Exit(0))
+					})
 				})
-				It("should create a service", func() {
-					services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
-					Expect(services).To(Exit(0))
-					Expect(services).To(Say(INSTANCE_NAME))
+				It("should have a service", func() {
+					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
+						Expect(services).To(Exit(0))
+						Expect(services).To(Say(INSTANCE_NAME))
+					})
 				})
-
-				Context("given a existing service instance", func() {
+				Context("given an installed cf app", func() {
 					It("it should be able to bind service to an app", func() {
 
 					})
 				})
-
 				AfterEach(func() {
-					cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-						deleteServiceBroker := cf.Cf("delete-service", "-f", INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
+					// destroy service
+					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						deleteServiceBroker := cf.Cf("delete-service", INSTANCE_NAME, "-f").Wait(DEFAULT_TIMEOUT)
 						Expect(deleteServiceBroker).To(Exit(0))
-						Expect(deleteServiceBroker).NotTo(Say(INSTANCE_NAME))
 					})
 				})
 			})
+			AfterEach(func() {
+				/* disable service*/
+			})
 		})
-
 		AfterEach(func() {
+			//destroy broker
 			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-				deleteServiceBroker := cf.Cf("delete-service-brokers", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
+				deleteServiceBroker := cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
 				Expect(deleteServiceBroker).To(Exit(0))
-				Expect(deleteServiceBroker).NotTo(Say(BROKER_NAME))
+				Expect(deleteServiceBroker).To(Say(BROKER_NAME))
 			})
 		})
 	})
-
 })
