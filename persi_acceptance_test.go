@@ -118,16 +118,20 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					})
 				})
 				AfterEach(func() {
-					/* disable service*/
+					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						createService := cf.Cf("delete-service", INSTANCE_NAME, "-f").Wait(DEFAULT_TIMEOUT)
+						Expect(createService).To(Exit(0))
+					})
 				})
 			})
-			AfterEach(func() {
-				//destroy broker
-				cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-					deleteServiceBroker := cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
-					Expect(deleteServiceBroker).To(Exit(0))
-					Expect(deleteServiceBroker).To(Say(BROKER_NAME))
-				})
+			AfterEach(func() {/*disable service*/})
+		})
+		AfterEach(func() {
+			//destroy broker
+			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+				deleteServiceBroker := cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
+				Expect(deleteServiceBroker).To(Exit(0))
+				Expect(deleteServiceBroker).To(Say(BROKER_NAME))
 			})
 		})
 	})
