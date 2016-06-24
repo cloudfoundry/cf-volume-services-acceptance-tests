@@ -16,6 +16,7 @@ var (
 	patsConfig  helpers.Config
 
 	DEFAULT_TIMEOUT = 30 * time.Second
+	LONG_TIMEOUT = 300 * time.Second
 
 	BROKER_URL = "http://cephbroker.persi.cf-app.com:8999"
 	BROKER_NAME = "patscephbroker"
@@ -24,6 +25,8 @@ var (
 	PLAN_NAME = "free"
 	INSTANCE_NAME = "mycephfs"
 	APP_NAME = "pora"
+
+	APP_URL = "http://pora.persi.cf-app.com"
 )
 
 func TestPersiAcceptance(t *testing.T) {

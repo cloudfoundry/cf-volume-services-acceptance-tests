@@ -1,12 +1,15 @@
 package persi_acceptance_tests_test
 
 import (
+	"io/ioutil"
+	"net/http"
+	"os"
+
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
-	"os"
 )
 
 var _ = Describe("Cloud Foundry Persistence", func() {
@@ -92,7 +95,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						appPath := os.Getenv("TEST_APPLICATION_PATH")
 						Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-							app := cf.Cf("push", APP_NAME, "-p", appPath, "--no-start").Wait(DEFAULT_TIMEOUT)
+							app := cf.Cf("push", APP_NAME, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start").Wait(DEFAULT_TIMEOUT)
 							Expect(app).To(Exit(0))
 						})
 					})
@@ -104,7 +107,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 					})
 					Context("when the app is bound", func() {
-						BeforeEach(func(){
+						BeforeEach(func() {
 							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("bind-service", APP_NAME, INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).To(Exit(0))
@@ -118,8 +121,28 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(services).To(Say(INSTANCE_NAME + "[^\\n]+" + SERVICE_NAME + "[^\\n]+" + APP_NAME))
 							})
 						})
+						Context("when the app is started", func() {
+							BeforeEach(func() {
+								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									bindResponse := cf.Cf("start", APP_NAME).Wait(LONG_TIMEOUT)
+									Expect(bindResponse).To(Exit(0))
+								})
+							})
+							It("should respond to http requests", func() {
+								body, status, err := get(APP_URL)
+								Expect(err).NotTo(HaveOccurred())
+								Expect(body).To(ContainSubstring("instance index:"))
+								Expect(status).To(Equal(http.StatusOK))
+							})
+							AfterEach(func() {
+								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									bindResponse := cf.Cf("stop", APP_NAME).Wait(DEFAULT_TIMEOUT)
+									Expect(bindResponse).To(Exit(0))
+								})
+							})
+						})
 
-						AfterEach(func(){
+						AfterEach(func() {
 							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("unbind-service", APP_NAME, INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).To(Exit(0))
@@ -147,7 +170,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					})
 				})
 			})
-			AfterEach(func() {/*disable service*/})
+			AfterEach(func() { /*disable service*/ })
 		})
 		AfterEach(func() {
 			//destroy broker
@@ -160,3 +183,17 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 	})
 })
 
+func get(uri string) (body string, status int, err error) {
+	req, err := http.NewRequest("GET", uri, nil)
+
+	response, err := (&http.Client{}).Do(req)
+	if err != nil {
+		var status int
+			if response != nil { status = response.StatusCode }
+		return "", status, err
+	}
+
+	defer response.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	return string(bodyBytes[:]), response.StatusCode, err
+}
