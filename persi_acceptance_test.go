@@ -96,7 +96,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							Expect(app).To(Exit(0))
 						})
 					})
-					FIt("it should be have the app", func() {
+					It("it should be have the app", func() {
 						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
 							Expect(marketplaceItems).To(Exit(0))
