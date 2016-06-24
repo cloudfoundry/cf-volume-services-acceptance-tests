@@ -17,7 +17,7 @@ var (
 
 	DEFAULT_TIMEOUT = 30 * time.Second
 
-	BROKER_URL = "http://patscephbroker.persi.cf-app.com:8999"
+	BROKER_URL = "http://cephbroker.persi.cf-app.com:8999"
 	BROKER_NAME = "patscephbroker"
 
 	SERVICE_NAME = "cephfs"
