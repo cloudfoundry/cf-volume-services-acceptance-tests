@@ -23,6 +23,7 @@ var (
 	SERVICE_NAME = "cephfs"
 	PLAN_NAME = "free"
 	INSTANCE_NAME = "mycephfs"
+	APP_NAME = "pora"
 )
 
 func TestPersiAcceptance(t *testing.T) {

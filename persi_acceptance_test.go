@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
+	"os"
 )
 
 var _ = Describe("Cloud Foundry Persistence", func() {
@@ -87,29 +88,48 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					})
 				})
 				Context("given an installed cf app", func() {
-					It("it should be able to bind service to an app", func() {
-
+					BeforeEach(func() {
+						appPath := os.Getenv("TEST_APPLICATION_PATH")
+						Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							app := cf.Cf("push", APP_NAME, "-p", appPath, "--no-start").Wait(DEFAULT_TIMEOUT)
+							Expect(app).To(Exit(0))
+						})
+					})
+					FIt("it should be have the app", func() {
+						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
+							Expect(marketplaceItems).To(Exit(0))
+							Expect(marketplaceItems).To(Say(APP_NAME))
+						})
+					})
+					AfterEach(func() {
+						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							app := cf.Cf("delete", APP_NAME, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+							Expect(app).To(Exit(0))
+						})
+					})
+					AfterEach(func() {
+						// destroy service
+						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							deleteServiceBroker := cf.Cf("delete-service", INSTANCE_NAME, "-f").Wait(DEFAULT_TIMEOUT)
+							Expect(deleteServiceBroker).To(Exit(0))
+						})
 					})
 				})
 				AfterEach(func() {
-					// destroy service
-					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-						deleteServiceBroker := cf.Cf("delete-service", INSTANCE_NAME, "-f").Wait(DEFAULT_TIMEOUT)
-						Expect(deleteServiceBroker).To(Exit(0))
-					})
+					/* disable service*/
 				})
 			})
 			AfterEach(func() {
-				/* disable service*/
-			})
-		})
-		AfterEach(func() {
-			//destroy broker
-			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-				deleteServiceBroker := cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
-				Expect(deleteServiceBroker).To(Exit(0))
-				Expect(deleteServiceBroker).To(Say(BROKER_NAME))
+				//destroy broker
+				cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+					deleteServiceBroker := cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
+					Expect(deleteServiceBroker).To(Exit(0))
+					Expect(deleteServiceBroker).To(Say(BROKER_NAME))
+				})
 			})
 		})
 	})
 })
+
