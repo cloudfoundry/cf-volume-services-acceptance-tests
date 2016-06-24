@@ -103,6 +103,29 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							Expect(marketplaceItems).To(Say(APP_NAME))
 						})
 					})
+					Context("when the app is bound", func() {
+						BeforeEach(func(){
+							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								bindResponse := cf.Cf("bind-service", APP_NAME, INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
+								Expect(bindResponse).To(Exit(0))
+							})
+						})
+
+						It("should show up as a bound app in a listing of services", func() {
+							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
+								Expect(services).To(Exit(0))
+								Expect(services).To(Say(INSTANCE_NAME + "[^\\n]+" + SERVICE_NAME + "[^\\n]+" + APP_NAME))
+							})
+						})
+
+						AfterEach(func(){
+							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								bindResponse := cf.Cf("unbind-service", APP_NAME, INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
+								Expect(bindResponse).To(Exit(0))
+							})
+						})
+					})
 					AfterEach(func() {
 						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							app := cf.Cf("delete", APP_NAME, "-r", "-f").Wait(DEFAULT_TIMEOUT)
