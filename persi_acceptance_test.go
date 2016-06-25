@@ -134,6 +134,15 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(body).To(ContainSubstring("instance index:"))
 								Expect(status).To(Equal(http.StatusOK))
 							})
+							It("should include the volume mount path in the application's environment", func() {
+								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									env := cf.Cf("env", APP_NAME).Wait(DEFAULT_TIMEOUT)
+									Expect(env).To(Exit(0))
+									Expect(env).To(Say(SERVICE_NAME))
+									Expect(env).To(Say(INSTANCE_NAME))
+									Expect(env).To(Say("container_path"))
+								})
+							})
 							AfterEach(func() {
 								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									bindResponse := cf.Cf("stop", APP_NAME).Wait(DEFAULT_TIMEOUT)
