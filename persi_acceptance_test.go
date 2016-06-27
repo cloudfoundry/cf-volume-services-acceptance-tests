@@ -95,7 +95,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						appPath := os.Getenv("TEST_APPLICATION_PATH")
 						Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-							app := cf.Cf("push", APP_NAME, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start").Wait(DEFAULT_TIMEOUT)
+							app := cf.Cf("push", APP_NAME, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start").Wait(LONG_TIMEOUT)
 							Expect(app).To(Exit(0))
 						})
 					})
@@ -150,6 +150,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 							AfterEach(func() {
 								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									cf.Cf("logs", APP_NAME,  "--recent").Wait(DEFAULT_TIMEOUT)
 									bindResponse := cf.Cf("stop", APP_NAME).Wait(DEFAULT_TIMEOUT)
 									Expect(bindResponse).To(Exit(0))
 								})
