@@ -113,7 +113,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(bindResponse).To(Exit(0))
 							})
 						})
-
 						It("should show up as a bound app in a listing of services", func() {
 							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
@@ -156,7 +155,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								})
 							})
 						})
-
 						AfterEach(func() {
 							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("unbind-service", APP_NAME, INSTANCE_NAME).Wait(DEFAULT_TIMEOUT)
@@ -168,13 +166,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							app := cf.Cf("delete", APP_NAME, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 							Expect(app).To(Exit(0))
-						})
-					})
-					AfterEach(func() {
-						// destroy service
-						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-							deleteServiceBroker := cf.Cf("delete-service", INSTANCE_NAME, "-f").Wait(DEFAULT_TIMEOUT)
-							Expect(deleteServiceBroker).To(Exit(0))
 						})
 					})
 				})

@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 
 	"time"
+	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 )
 
 var (
@@ -26,7 +27,9 @@ var (
 	INSTANCE_NAME = "mycephfs"
 	APP_NAME = "pora"
 
-	APP_URL = "http://pora.persi.cf-app.com"
+	APP_HOST = "pora.persi.cf-app.com"
+
+	APP_URL = "http://" + APP_HOST
 )
 
 func TestPersiAcceptance(t *testing.T) {
@@ -38,6 +41,10 @@ func TestPersiAcceptance(t *testing.T) {
 	environment := helpers.NewEnvironment(patsContext)
 
 	BeforeSuite(func() {
+		cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			cf.Cf("delete-route", APP_HOST).Wait(DEFAULT_TIMEOUT)
+			cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
+		})
 		environment.Setup()
 	})
 
