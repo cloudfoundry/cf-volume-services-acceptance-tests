@@ -143,6 +143,12 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(env).To(Say("container_path"))
 								})
 							})
+							It("should be able to write to the volume", func() {
+								body, status, err := get(APP_URL + "/write")
+								Expect(err).NotTo(HaveOccurred())
+								Expect(body).To(ContainSubstring("Hello Persistent World"))
+								Expect(status).To(Equal(http.StatusOK))
+							})
 							AfterEach(func() {
 								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									bindResponse := cf.Cf("stop", APP_NAME).Wait(DEFAULT_TIMEOUT)
