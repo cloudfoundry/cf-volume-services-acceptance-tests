@@ -3,3 +3,4 @@
 .nvim
 .nvimrc
 scripts/config
+integration_config.json

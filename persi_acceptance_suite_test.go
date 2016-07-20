@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 
 	"time"
+
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 )
 
@@ -17,19 +18,16 @@ var (
 	patsConfig  helpers.Config
 
 	DEFAULT_TIMEOUT = 30 * time.Second
-	LONG_TIMEOUT = 300 * time.Second
+	LONG_TIMEOUT    = 300 * time.Second
 
-	BROKER_URL = "http://cephbroker.persi.cf-app.com:8999"
-	BROKER_NAME = "patscephbroker"
+	BrokerURL, AppHost, AppURL string
 
-	SERVICE_NAME = "cephfs"
-	PLAN_NAME = "free"
-	INSTANCE_NAME = "mycephfs"
-	APP_NAME = "pora"
+	BROKER_NAME  = "pats-broker"
+	SERVICE_NAME = "pats-service"
+	PLAN_NAME    = "pats-plan"
 
-	APP_HOST = "pora.persi.cf-app.com"
-
-	APP_URL = "http://" + APP_HOST
+	INSTANCE_NAME = "pats-volume-instance"
+	APP_NAME      = "pats-pora"
 )
 
 func TestPersiAcceptance(t *testing.T) {
@@ -40,9 +38,13 @@ func TestPersiAcceptance(t *testing.T) {
 	patsContext = helpers.NewContext(patsConfig)
 	environment := helpers.NewEnvironment(patsContext)
 
+	BrokerURL = "http://pats-broker." + patsConfig.AppsDomain
+	AppHost = APP_NAME + "." + patsConfig.AppsDomain
+	AppURL = "http://" + AppHost
+
 	BeforeSuite(func() {
 		cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-			cf.Cf("delete-route", APP_HOST).Wait(DEFAULT_TIMEOUT)
+			cf.Cf("delete-route", AppHost).Wait(DEFAULT_TIMEOUT)
 			cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
 		})
 		environment.Setup()

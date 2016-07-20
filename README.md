@@ -14,5 +14,20 @@ To install pats tests in your `GOPATH`:
 go get github.com/cloudfoundry-incubator/persi_acceptance_test
 ```
 
+
+```bash
+cat > integration_config.json <<EOF
+{
+  "api": "api.bosh-lite.com",
+  "admin_user": "admin",
+  "admin_password": "admin",
+  "apps_domain": "bosh-lite.com",
+  "skip_ssl_validation": true,
+  "use_http": true
+}
+EOF
+export CONFIG=$PWD/integration_config.json
+```
+
 # Acceptance
 
