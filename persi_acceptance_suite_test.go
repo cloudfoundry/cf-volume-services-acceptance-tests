@@ -41,6 +41,16 @@ func TestPersiAcceptance(t *testing.T) {
 	BrokerURL = "http://pats-broker." + patsConfig.AppsDomain
 	AppHost = APP_NAME + "." + patsConfig.AppsDomain
 	AppURL = "http://" + AppHost
+	if patsConfig.NamePrefix != "" {
+		BROKER_NAME = patsConfig.NamePrefix + BROKER_NAME
+		SERVICE_NAME = patsConfig.NamePrefix + SERVICE_NAME
+		PLAN_NAME = patsConfig.NamePrefix + PLAN_NAME
+		INSTANCE_NAME = patsConfig.NamePrefix + INSTANCE_NAME
+		APP_NAME = patsConfig.NamePrefix + APP_NAME
+		patsConfig.NamePrefix = patsConfig.NamePrefix + "-ginkgoPATS"
+	} else {
+		patsConfig.NamePrefix = "ginkgoPATS"
+	}
 
 	BeforeSuite(func() {
 		cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
@@ -69,6 +79,4 @@ func defaults(config *helpers.Config) {
 	if config.DefaultTimeout > 0 {
 		DEFAULT_TIMEOUT = config.DefaultTimeout * time.Second
 	}
-
-	config.NamePrefix = "ginkgoPATS"
 }
