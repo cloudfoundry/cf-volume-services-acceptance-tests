@@ -37,11 +37,11 @@ func TestPersiAcceptance(t *testing.T) {
 	defaults(&patsConfig)
 	if patsConfig.NamePrefix != "" {
 		patsConfig.NamePrefix = patsConfig.NamePrefix + "-ginkgoPATS"
-		BROKER_NAME = patsConfig.NamePrefix + BROKER_NAME
-		SERVICE_NAME = patsConfig.NamePrefix + SERVICE_NAME
-		PLAN_NAME = patsConfig.NamePrefix + PLAN_NAME
-		INSTANCE_NAME = patsConfig.NamePrefix + INSTANCE_NAME
-		APP_NAME = patsConfig.NamePrefix + APP_NAME
+		BROKER_NAME = patsConfig.NamePrefix + "-" + BROKER_NAME
+		SERVICE_NAME = patsConfig.NamePrefix + "-" + SERVICE_NAME
+		PLAN_NAME = patsConfig.NamePrefix + "-" + PLAN_NAME
+		INSTANCE_NAME = patsConfig.NamePrefix + "-" + INSTANCE_NAME
+		APP_NAME = patsConfig.NamePrefix + "-" + APP_NAME
 	} else {
 		patsConfig.NamePrefix = "ginkgoPATS"
 	}
