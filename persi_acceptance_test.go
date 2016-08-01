@@ -18,13 +18,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 	It("should have a ginkgoPATS test org", func() {
 		orgs := cf.Cf("orgs").Wait(DEFAULT_TIMEOUT)
 		Expect(orgs).To(Exit(0))
-		Expect(orgs).To(Say("ginkgoPATS"))
+		Expect(orgs).To(Say(".*ginkgoPATS"))
 	})
 
 	It("should have a ginkgoPATS test space", func() {
 		orgs := cf.Cf("spaces").Wait(DEFAULT_TIMEOUT)
 		Expect(orgs).To(Exit(0))
-		Expect(orgs).To(Say("ginkgoPATS"))
+		Expect(orgs).To(Say(".*ginkgoPATS"))
 	})
 
 	It("should have a target", func() {
