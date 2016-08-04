@@ -3,31 +3,28 @@ package persi_acceptance_tests_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gbytes"
+	. "github.com/onsi/gomega/gexec"
 
 	"testing"
 
+	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 
 	"time"
-
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 )
 
 var (
-	patsContext helpers.SuiteContext
-	patsConfig  helpers.Config
+	patsConfig       helpers.Config
+	patsSuiteContext helpers.SuiteContext
 
 	DEFAULT_TIMEOUT = 30 * time.Second
 	LONG_TIMEOUT    = 300 * time.Second
 
-	BrokerURL, AppHost, AppURL string
+	brokerName = "pats-broker"
 
-	BROKER_NAME  = "pats-broker"
-	SERVICE_NAME = "pats-service"
-	PLAN_NAME    = "pats-plan"
-
-	INSTANCE_NAME = "pats-volume-instance"
-	APP_NAME      = "pats-pora"
+	serviceName = "pats-service"
+	planName    = "pats-plan"
 )
 
 func TestPersiAcceptance(t *testing.T) {
@@ -38,37 +35,37 @@ func TestPersiAcceptance(t *testing.T) {
 
 	if patsConfig.NamePrefix != "CATS" && patsConfig.NamePrefix != "" {
 		patsConfig.NamePrefix = patsConfig.NamePrefix + "-ginkgoPATS"
-		BROKER_NAME = patsConfig.NamePrefix + "-" + BROKER_NAME
-		SERVICE_NAME = patsConfig.NamePrefix + "-" + SERVICE_NAME
-		PLAN_NAME = patsConfig.NamePrefix + "-" + PLAN_NAME
-		INSTANCE_NAME = patsConfig.NamePrefix + "-" + INSTANCE_NAME
-		APP_NAME = patsConfig.NamePrefix + "-" + APP_NAME
-		BrokerURL = "http://pats-broker." + patsConfig.NamePrefix + "." + patsConfig.AppsDomain
+		serviceName = patsConfig.NamePrefix + "-" + serviceName
+		planName = patsConfig.NamePrefix + "-" + planName
 	} else {
 		patsConfig.NamePrefix = "ginkgoPATS"
-		BrokerURL = "http://pats-broker." + patsConfig.AppsDomain
 	}
 
-	patsContext = helpers.NewContext(patsConfig)
-	environment := helpers.NewEnvironment(patsContext)
-
-	AppHost = APP_NAME + "." + patsConfig.AppsDomain
-	AppURL = "http://" + AppHost
-
-	BeforeSuite(func() {
-		cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-			cf.Cf("delete-route", AppHost).Wait(DEFAULT_TIMEOUT)
-			cf.Cf("delete-service-broker", "-f", BROKER_NAME).Wait(DEFAULT_TIMEOUT)
-		})
-		environment.Setup()
-	})
-
-	AfterSuite(func() {
-		environment.Teardown()
-	})
-
+	brokerName = patsConfig.NamePrefix + "-" + brokerName
 	componentName := "PATS Suite"
 	rs := []Reporter{}
+
+	SynchronizedBeforeSuite(func() []byte {
+		patsSuiteContext = helpers.NewContext(patsConfig)
+
+		BrokerURL := "http://pats-broker." + patsConfig.AppsDomain
+
+		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			// make sure we don't have a leftover service broker from another test
+			cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
+			createServiceBroker := cf.Cf("create-service-broker", brokerName, patsConfig.AdminUser, patsConfig.AdminPassword, BrokerURL).Wait(DEFAULT_TIMEOUT)
+			Expect(createServiceBroker).To(Exit(0))
+			Expect(createServiceBroker).To(Say(brokerName))
+		})
+
+		return nil
+	}, func(_ []byte) {})
+
+	SynchronizedAfterSuite(func() {}, func() {
+		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
+		})
+	})
 
 	if patsConfig.ArtifactsDirectory != "" {
 		helpers.EnableCFTrace(patsConfig, componentName)
