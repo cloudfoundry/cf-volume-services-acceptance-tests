@@ -36,7 +36,7 @@ func TestPersiAcceptance(t *testing.T) {
 
 	if patsConfig.NamePrefix != "CATS" && patsConfig.NamePrefix != "" {
 		patsConfig.NamePrefix = patsConfig.NamePrefix + "-ginkgoPATS"
-		brokerUrl = "http://pats-broker." + patsConfig.NamePrefix + patsConfig.AppsDomain
+		brokerUrl = "http://pats-broker." + patsConfig.NamePrefix + "." + patsConfig.AppsDomain
 		serviceName = patsConfig.NamePrefix + "-" + serviceName
 		planName = patsConfig.NamePrefix + "-" + planName
 	} else {
