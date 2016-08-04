@@ -25,6 +25,7 @@ var (
 
 	serviceName = "pats-service"
 	planName    = "pats-plan"
+	brokerUrl   string
 )
 
 func TestPersiAcceptance(t *testing.T) {
@@ -35,10 +36,12 @@ func TestPersiAcceptance(t *testing.T) {
 
 	if patsConfig.NamePrefix != "CATS" && patsConfig.NamePrefix != "" {
 		patsConfig.NamePrefix = patsConfig.NamePrefix + "-ginkgoPATS"
+		brokerUrl = "http://pats-broker." + patsConfig.NamePrefix + patsConfig.AppsDomain
 		serviceName = patsConfig.NamePrefix + "-" + serviceName
 		planName = patsConfig.NamePrefix + "-" + planName
 	} else {
 		patsConfig.NamePrefix = "ginkgoPATS"
+		brokerUrl = "http://pats-broker." + patsConfig.AppsDomain
 	}
 
 	brokerName = patsConfig.NamePrefix + "-" + brokerName
@@ -48,12 +51,10 @@ func TestPersiAcceptance(t *testing.T) {
 	SynchronizedBeforeSuite(func() []byte {
 		patsSuiteContext = helpers.NewContext(patsConfig)
 
-		BrokerURL := "http://pats-broker." + patsConfig.AppsDomain
-
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
 			cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
-			createServiceBroker := cf.Cf("create-service-broker", brokerName, patsConfig.AdminUser, patsConfig.AdminPassword, BrokerURL).Wait(DEFAULT_TIMEOUT)
+			createServiceBroker := cf.Cf("create-service-broker", brokerName, patsConfig.AdminUser, patsConfig.AdminPassword, brokerUrl).Wait(DEFAULT_TIMEOUT)
 			Expect(createServiceBroker).To(Exit(0))
 			Expect(createServiceBroker).To(Say(brokerName))
 		})
