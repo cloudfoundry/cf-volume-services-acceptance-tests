@@ -18,6 +18,9 @@ var (
 	patsConfig       helpers.Config
 	patsSuiteContext helpers.SuiteContext
 
+	patsTestContext     helpers.SuiteContext
+	patsTestEnvironment *helpers.Environment
+
 	DEFAULT_TIMEOUT = 30 * time.Second
 	LONG_TIMEOUT    = 300 * time.Second
 
@@ -60,9 +63,16 @@ func TestPersiAcceptance(t *testing.T) {
 		})
 
 		return nil
-	}, func(_ []byte) {})
+	}, func(_ []byte) {
+		patsTestContext = helpers.NewContext(patsConfig)
+		patsTestEnvironment = helpers.NewEnvironment(patsTestContext)
 
-	SynchronizedAfterSuite(func() {}, func() {
+		patsTestEnvironment.Setup()
+	})
+
+	SynchronizedAfterSuite(func() {
+		patsTestEnvironment.Teardown()
+	}, func() {
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
 		})

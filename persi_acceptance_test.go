@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
@@ -18,9 +17,6 @@ import (
 
 var _ = Describe("Cloud Foundry Persistence", func() {
 	var (
-		patsContext helpers.SuiteContext
-		environment *helpers.Environment
-
 		BrokerURL, AppHost, AppURL string
 
 		instanceName string
@@ -37,20 +33,12 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		appName = patsConfig.NamePrefix + "-" + appName + parallelNode
 		BrokerURL = "http://pats-broker." + patsConfig.AppsDomain
 
-		patsContext = helpers.NewContext(patsConfig)
-		environment = helpers.NewEnvironment(patsContext)
-
 		AppHost = appName + "." + patsConfig.AppsDomain
 		AppURL = "http://" + AppHost
 
-		cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			cf.Cf("delete-route", AppHost).Wait(DEFAULT_TIMEOUT)
 		})
-		environment.Setup()
-	})
-
-	AfterEach(func() {
-		environment.Teardown()
 	})
 
 	// given a target, org and space
@@ -82,7 +70,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		})
 
 		It("should have a volume service broker", func() {
-			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				serviceBrokers := cf.Cf("service-brokers").Wait(DEFAULT_TIMEOUT)
 				Expect(serviceBrokers).To(Exit(0))
 				Expect(serviceBrokers).To(Say(brokerName))
@@ -90,19 +78,19 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		})
 
 		It("should not have enabled access", func() {
-			cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
 				Expect(serviceAccess).To(Exit(0))
 				Expect(serviceAccess).To(Say(brokerName))
 				Expect(serviceAccess).To(Say(serviceName + ".*" + planName + ".*"))
-				Expect(serviceAccess).NotTo(Say(patsContext.RegularUserContext().Org))
+				Expect(serviceAccess).NotTo(Say(patsTestContext.RegularUserContext().Org))
 			})
 		})
 
 		Context("given an enabled service", func() {
 			BeforeEach(func() {
-				cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-					publishService := cf.Cf("enable-service-access", serviceName, "-o", patsContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+					publishService := cf.Cf("enable-service-access", serviceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
 					Expect(publishService).To(Exit(0))
 				})
 			})
@@ -110,16 +98,16 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 			AfterEach(func() { /*disable service*/ })
 
 			It("should have enabled access", func() {
-				cf.AsUser(patsContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 					serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
 					Expect(serviceAccess).To(Exit(0))
 					Expect(serviceAccess).To(Say(brokerName))
-					Expect(serviceAccess).To(Say(serviceName + ".*" + planName + ".*limited.*" + patsContext.RegularUserContext().Org))
+					Expect(serviceAccess).To(Say(serviceName + ".*" + planName + ".*limited.*" + patsTestContext.RegularUserContext().Org))
 				})
 			})
 
 			It("should be able to find a service in the marketplace", func() {
-				cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+				cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 					marketplaceItems := cf.Cf("marketplace").Wait(DEFAULT_TIMEOUT)
 					Expect(marketplaceItems).To(Exit(0))
 					Expect(marketplaceItems).To(Say(serviceName))
@@ -129,20 +117,20 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 			Context("given a service instance", func() {
 				BeforeEach(func() {
-					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						createService := cf.Cf("create-service", serviceName, planName, instanceName).Wait(DEFAULT_TIMEOUT)
 						Expect(createService).To(Exit(0))
 					})
 				})
 
 				AfterEach(func() {
-					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
 					})
 				})
 
 				It("should have a service", func() {
-					cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 						Expect(services).To(Exit(0))
 						Expect(services).To(Say(instanceName))
@@ -153,20 +141,20 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					BeforeEach(func() {
 						appPath := os.Getenv("TEST_APPLICATION_PATH")
 						Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), LONG_TIMEOUT).Should(Exit(0))
 							Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(appName), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 						})
 					})
 
 					AfterEach(func() {
-						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							cf.Cf("delete", appName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 						})
 					})
 
 					It("it should be have the app", func() {
-						cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
 							Expect(marketplaceItems).To(Exit(0))
 							Expect(marketplaceItems).To(Say(appName))
@@ -175,14 +163,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 					Context("when the app is bound", func() {
 						BeforeEach(func() {
-							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).To(Exit(0))
 							})
 						})
 
 						AfterEach(func() {
-							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
 								cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
 
@@ -191,7 +179,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 
 						It("should show up as a bound app in a listing of services", func() {
-							cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 								Expect(services).To(Exit(0))
 								Expect(services).To(Say(instanceName + "[^\\n]+" + serviceName + "[^\\n]+" + appName))
@@ -200,14 +188,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 						Context("when the app is started", func() {
 							BeforeEach(func() {
-								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
 									Expect(bindResponse).To(Exit(0))
 								})
 							})
 
 							AfterEach(func() {
-								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
 									cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
 								})
@@ -221,7 +209,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 
 							It("should include the volume mount path in the application's environment", func() {
-								cf.AsUser(patsContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									env := cf.Cf("env", appName).Wait(DEFAULT_TIMEOUT)
 									Expect(env).To(Exit(0))
 									Expect(env).To(Say(serviceName))
