@@ -95,7 +95,12 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				})
 			})
 
-			AfterEach(func() { /*disable service*/ })
+			AfterEach(func() {
+				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+					publishService := cf.Cf("disable-service-access", serviceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+					Expect(publishService).To(Exit(0))
+				})
+			})
 
 			It("should have enabled access", func() {
 				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
