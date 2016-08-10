@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("Cloud Foundry Persistence", func() {
 	var (
-		BrokerURL, AppHost, AppURL string
+		AppHost, AppURL string
 
 		instanceName string
 		appName      string
@@ -29,46 +29,18 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		instanceName = "pats-volume-instance"
 		appName = "pats-pora"
 
-		instanceName = patsConfig.NamePrefix + "-" + instanceName + parallelNode
-		appName = patsConfig.NamePrefix + "-" + appName + parallelNode
-		BrokerURL = "http://pats-broker." + patsConfig.AppsDomain
+		instanceName = cfConfig.NamePrefix + "-" + instanceName + parallelNode
+		appName = cfConfig.NamePrefix + "-" + appName + parallelNode
 
-		AppHost = appName + "." + patsConfig.AppsDomain
+		AppHost = appName + "." + cfConfig.AppsDomain
 		AppURL = "http://" + AppHost
 
-		cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-			cf.Cf("delete-route", AppHost).Wait(DEFAULT_TIMEOUT)
-		})
-	})
-
-	// given a target, org and space
-	It("should have a ginkgoPATS test org", func() {
-		orgs := cf.Cf("orgs").Wait(DEFAULT_TIMEOUT)
-		Expect(orgs).To(Exit(0))
-		Expect(orgs).To(Say(".*ginkgoPATS"))
-	})
-
-	It("should have a ginkgoPATS test space", func() {
-		orgs := cf.Cf("spaces").Wait(DEFAULT_TIMEOUT)
-		Expect(orgs).To(Exit(0))
-		Expect(orgs).To(Say(".*ginkgoPATS"))
-	})
-
-	It("should have a target", func() {
-		orgs := cf.Cf("target").Wait(DEFAULT_TIMEOUT)
-		Expect(orgs).To(Exit(0))
-		Expect(orgs).To(Say("User:.*ginkgoPATS-USER"))
-		Expect(orgs).To(Say("Org:.*ginkgoPATS-ORG"))
-		Expect(orgs).To(Say("Space:.*ginkgoPATS-SPACE"))
+		// cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		//	cf.Cf("delete-route", AppHost).Wait(DEFAULT_TIMEOUT)
+		// })
 	})
 
 	Context("given a service broker", func() {
-		BeforeEach(func() {
-		})
-
-		AfterEach(func() {
-		})
-
 		It("should have a volume service broker", func() {
 			cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				serviceBrokers := cf.Cf("service-brokers").Wait(DEFAULT_TIMEOUT)
@@ -82,7 +54,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
 				Expect(serviceAccess).To(Exit(0))
 				Expect(serviceAccess).To(Say(brokerName))
-				Expect(serviceAccess).To(Say(serviceName + ".*" + planName + ".*"))
+				Expect(serviceAccess).To(Say(pConfig.ServiceName + ".*" + pConfig.PlanName + ".*"))
 				Expect(serviceAccess).NotTo(Say(patsTestContext.RegularUserContext().Org))
 			})
 		})
@@ -90,14 +62,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		Context("given an enabled service", func() {
 			BeforeEach(func() {
 				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-					publishService := cf.Cf("enable-service-access", serviceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+					publishService := cf.Cf("enable-service-access", pConfig.ServiceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
 					Expect(publishService).To(Exit(0))
 				})
 			})
 
 			AfterEach(func() {
 				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-					publishService := cf.Cf("disable-service-access", serviceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+					publishService := cf.Cf("disable-service-access", pConfig.ServiceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
 					Expect(publishService).To(Exit(0))
 				})
 			})
@@ -107,7 +79,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
 					Expect(serviceAccess).To(Exit(0))
 					Expect(serviceAccess).To(Say(brokerName))
-					Expect(serviceAccess).To(Say(serviceName + ".*" + planName + ".*limited.*" + patsTestContext.RegularUserContext().Org))
+					Expect(serviceAccess).To(Say(pConfig.ServiceName + ".*" + pConfig.PlanName + ".*limited.*" + patsTestContext.RegularUserContext().Org))
 				})
 			})
 
@@ -115,15 +87,15 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 					marketplaceItems := cf.Cf("marketplace").Wait(DEFAULT_TIMEOUT)
 					Expect(marketplaceItems).To(Exit(0))
-					Expect(marketplaceItems).To(Say(serviceName))
-					Expect(marketplaceItems).To(Say(planName))
+					Expect(marketplaceItems).To(Say(pConfig.ServiceName))
+					Expect(marketplaceItems).To(Say(pConfig.PlanName))
 				})
 			})
 
 			Context("given a service instance", func() {
 				BeforeEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-						createService := cf.Cf("create-service", serviceName, planName, instanceName).Wait(DEFAULT_TIMEOUT)
+						createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						Expect(createService).To(Exit(0))
 					})
 				})
@@ -187,7 +159,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 								Expect(services).To(Exit(0))
-								Expect(services).To(Say(instanceName + "[^\\n]+" + serviceName + "[^\\n]+" + appName))
+								Expect(services).To(Say(instanceName + "[^\\n]+" + pConfig.ServiceName + "[^\\n]+" + appName))
 							})
 						})
 
@@ -217,7 +189,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									env := cf.Cf("env", appName).Wait(DEFAULT_TIMEOUT)
 									Expect(env).To(Exit(0))
-									Expect(env).To(Say(serviceName))
+									Expect(env).To(Say(pConfig.ServiceName))
 									Expect(env).To(Say(instanceName))
 									Expect(env).To(Say("container_path"))
 								})
