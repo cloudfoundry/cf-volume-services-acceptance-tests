@@ -98,20 +98,35 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						Expect(createService).To(Exit(0))
 					})
+
+					// wait for async service to finish
+					Eventually(func() *Session {
+						serviceDetails := cf.Cf("service", instanceName).Wait(DEFAULT_TIMEOUT)
+						Expect(serviceDetails).To(Exit(0))
+						return serviceDetails
+					}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
 				})
 
 				AfterEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
 					})
+
+					// wait for async service to finish
+					Eventually(func() *Session {
+						serviceDetails := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
+						Expect(serviceDetails).To(Exit(0))
+						return serviceDetails
+					}, LONG_TIMEOUT, POLL_INTERVAL).Should(Not(Say(instanceName)))
+
+					cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+						cf.Cf("purge-service-instance", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
+					})
 				})
 
-				It("should have a service", func() {
-					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-						services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
-						Expect(services).To(Exit(0))
-						Expect(services).To(Say(instanceName))
-					})
+				FIt("should have a service", func() {
+					services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
+					Expect(services).To(Say(instanceName))
 				})
 
 				Context("given an installed cf app", func() {
