@@ -27,6 +27,7 @@ var (
 
 	DEFAULT_TIMEOUT = 30 * time.Second
 	LONG_TIMEOUT    = 300 * time.Second
+	POLL_INTERVAL   = 3 * time.Second
 
 	brokerName = "pats-broker"
 )
