@@ -170,7 +170,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 						})
 
-						FIt("should show up as a bound app in a listing of services", func() {
+						It("should show up as a bound app in a listing of services", func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 								Expect(services).To(Exit(0))
