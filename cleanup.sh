@@ -8,3 +8,7 @@ for org in ${orgs}; do
   cf delete-org -f ${org}
 
 done
+
+cf purge-service-offering efs -f
+cf delete-service-broker pats-broker -f
+
