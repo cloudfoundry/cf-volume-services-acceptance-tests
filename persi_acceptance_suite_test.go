@@ -66,7 +66,9 @@ func TestPersiAcceptance(t *testing.T) {
 	})
 
 	SynchronizedAfterSuite(func() {
-		patsTestEnvironment.Teardown()
+		if patsTestEnvironment != nil {
+			patsTestEnvironment.Teardown()
+		}
 	}, func() {
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
