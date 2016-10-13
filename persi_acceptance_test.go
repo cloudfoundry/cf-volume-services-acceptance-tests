@@ -181,7 +181,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						Context("when the app is started", func() {
 							BeforeEach(func() {
 								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-									bindResponse := cf.Cf("start", appName).Wait(DEFAULT_TIMEOUT)
+									bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
 									Expect(bindResponse).To(Exit(0))
 								})
 							})
