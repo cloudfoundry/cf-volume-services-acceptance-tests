@@ -71,7 +71,11 @@ func TestPersiAcceptance(t *testing.T) {
 		}
 	}, func() {
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-			cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
+			session := cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
+			if session.ExitCode() != 0 {
+				cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
+				Fail("pats service broker could not be cleaned up.")
+			}
 		})
 	})
 
