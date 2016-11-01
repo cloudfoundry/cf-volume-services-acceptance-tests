@@ -44,18 +44,18 @@ func hello(res http.ResponseWriter, req *http.Request) {
 func write(res http.ResponseWriter, req *http.Request) {
 	vcapEnv := os.Getenv("VCAP_SERVICES")
 
-	r, err := regexp.Compile("\"container_dir\": \"([^\"]+)\"")
+	r, err := regexp.Compile("\"container_(dir|path)\": \"([^\"]+)\"")
 	if err != nil {
 		panic(err)
 	}
 
 	match := r.FindStringSubmatch(vcapEnv)
-	if len(match) < 2 {
+	if len(match) < 3 {
 		fmt.Fprintf(os.Stderr, "VCAP_SERVICES is %s", vcapEnv)
 		panic("failed to find container_dir in environment json")
 	}
 
-	mountPointPath := match[1] + "/test.txt"
+	mountPointPath := match[2] + "/test.txt"
 
 	d1 := []byte("Hello Persistent World!\n")
 	err = ioutil.WriteFile(mountPointPath, d1, 0644)
