@@ -206,7 +206,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(env).To(Exit(0))
 									Expect(env).To(Say(pConfig.ServiceName))
 									Expect(env).To(Say(instanceName))
-									Expect(env).To(Say("container_path"))
+									Expect(env).To(Or(Say("container_path"), Say("container_dir")))
 								})
 							})
 
