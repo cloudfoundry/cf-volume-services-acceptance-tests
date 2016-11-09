@@ -1,12 +1,12 @@
 [submodule "vendor/github.com/onsi/ginkgo"]
 	path = vendor/github.com/onsi/ginkgo
-	url = https://github.com/onsi/ginkgo
+	url = https://github.com/onsi/ginkgo.git
 [submodule "vendor/github.com/onsi/gomega"]
 	path = vendor/github.com/onsi/gomega
-	url = https://github.com/onsi/gomega
+	url = https://github.com/onsi/gomega.git
 [submodule "vendor/github.com/cloudfoundry-incubator/cf-test-helpers"]
 	path = vendor/github.com/cloudfoundry-incubator/cf-test-helpers
 	url = https://github.com/cloudfoundry-incubator/cf-test-helpers.git
 [submodule "vendor/gopkg.in/yaml.v2"]
 	path = vendor/gopkg.in/yaml.v2
-	url = https://github.com/go-yaml/yaml.git
+	url = https://gopkg.in/yaml.v2
