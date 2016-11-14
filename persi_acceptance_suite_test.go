@@ -14,6 +14,7 @@ import (
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 
+	"os/exec"
 	"time"
 )
 
@@ -51,7 +52,8 @@ func TestPersiAcceptance(t *testing.T) {
 
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
-			cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
+			deleteBroker(pConfig.BrokerUrl)
+
 			createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
 			Expect(createServiceBroker).To(Exit(0))
 			Expect(createServiceBroker).To(Say(brokerName))
@@ -85,6 +87,28 @@ func TestPersiAcceptance(t *testing.T) {
 	}
 
 	RunSpecsWithDefaultAndCustomReporters(t, componentName, rs)
+}
+
+func deleteBroker(brokerUrl string) {
+	serviceBrokers, err := exec.Command("cf", "curl", "/v2/service_brokers").Output()
+	Expect(err).NotTo(HaveOccurred())
+
+	var serviceBrokerResponse struct {
+		Resources []struct {
+			Entity struct {
+				BrokerUrl string `json:"broker_url"`
+				Name      string
+			}
+		}
+	}
+
+	Expect(json.Unmarshal(serviceBrokers, &serviceBrokerResponse)).To(Succeed())
+
+	for _, broker := range serviceBrokerResponse.Resources {
+		if broker.Entity.BrokerUrl == brokerUrl {
+			cf.Cf("delete-service-broker", "-f", broker.Entity.Name).Wait(DEFAULT_TIMEOUT)
+		}
+	}
 }
 
 func defaults(config *helpers.Config) {
