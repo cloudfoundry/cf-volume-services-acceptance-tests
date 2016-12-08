@@ -123,6 +123,8 @@ type patsConfig struct {
 	BrokerUrl      string `json:"broker_url"`
 	BrokerUser     string `json:"broker_user"`
 	BrokerPassword string `json:"broker_password"`
+	ServerAddress  string `json:"server_addr"`
+	Share          string `json:"share"`
 }
 
 func getPatsSpecificConfig() error {
@@ -134,7 +136,10 @@ func getPatsSpecificConfig() error {
 
 	decoder := json.NewDecoder(configFile)
 
-	config := &patsConfig{}
+	config := &patsConfig{
+		ServerAddress: "NotUsed",
+		Share: "NotUsed",
+	}
 	err = decoder.Decode(config)
 	if err != nil {
 		return err

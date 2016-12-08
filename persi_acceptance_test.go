@@ -95,7 +95,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 			Context("given a service instance", func() {
 				BeforeEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-						createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
+						var createService *Session
+						if pConfig.ServerAddress == "NotUsed" {
+							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
+						} else {
+							nfsParams := `{"share": "` + pConfig.ServerAddress + `:` + pConfig.Share + `"}`
+							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", nfsParams).Wait(DEFAULT_TIMEOUT)
+						}
 						Expect(createService).To(Exit(0))
 					})
 
