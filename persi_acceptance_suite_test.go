@@ -30,7 +30,7 @@ var (
 	LONG_TIMEOUT    = 600 * time.Second
 	POLL_INTERVAL   = 3 * time.Second
 
-	brokerName = "pats-broker"
+	brokerName string
 )
 
 func TestPersiAcceptance(t *testing.T) {
@@ -43,6 +43,8 @@ func TestPersiAcceptance(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
+	brokerName = pConfig.ServiceName + "-broker"
 
 	componentName := "PATS Suite"
 	rs := []Reporter{}
