@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
@@ -55,7 +56,7 @@ func write(res http.ResponseWriter, req *http.Request) {
 		panic("failed to find container_dir in environment json")
 	}
 
-	mountPointPath := match[2] + "/test.txt"
+	mountPointPath := match[2] + "/poratest-" + randomString(10)
 
 	d1 := []byte("Hello Persistent World!\n")
 	err = ioutil.WriteFile(mountPointPath, d1, 0644)
@@ -82,4 +83,14 @@ func env(res http.ResponseWriter, req *http.Request) {
 	for _, e := range os.Environ() {
 		fmt.Fprintf(res, "%s\n", e)
 	}
+}
+
+func randomString(n int) string {
+	runes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = runes[rand.Intn(len(runes))]
+	}
+	return string(b)
 }
