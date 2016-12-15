@@ -75,6 +75,15 @@ func write(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte(err.Error()))
 		return
 	}
+
+	err = os.Remove(mountPointPath)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Deleting \n"))
+		res.Write([]byte(err.Error()))
+		return
+	}
+
 	res.Write(body)
 	return
 }
