@@ -99,7 +99,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						if pConfig.ServerAddress == "NotUsed" {
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						} else {
-							nfsParams := `{"share": "` + pConfig.ServerAddress + pConfig.Share + `"}`
+							nfsParams := `{"share": "` + pConfig.ServerAddress + pConfig.Share + `", "uid": "1000", "gid": "1000"}`
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", nfsParams).Wait(DEFAULT_TIMEOUT)
 						}
 						Expect(createService).To(Exit(0))
