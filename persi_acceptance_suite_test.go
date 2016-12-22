@@ -127,6 +127,7 @@ type patsConfig struct {
 	BrokerPassword string `json:"broker_password"`
 	ServerAddress  string `json:"server_addr"`
 	Share          string `json:"share"`
+	BindConfig     string `json:"bind_config"`
 }
 
 func getPatsSpecificConfig() error {

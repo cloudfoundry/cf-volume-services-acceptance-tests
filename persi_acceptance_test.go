@@ -99,7 +99,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						if pConfig.ServerAddress == "NotUsed" {
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						} else {
-							nfsParams := `{"share": "` + pConfig.ServerAddress + pConfig.Share + `", "uid": "1000", "gid": "1000"}`
+							nfsParams := `{"share": "` + pConfig.ServerAddress + pConfig.Share + `"}`
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", nfsParams).Wait(DEFAULT_TIMEOUT)
 						}
 						Expect(createService).To(Exit(0))
@@ -162,7 +162,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					Context("when the app is bound", func() {
 						BeforeEach(func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
+								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.BindConfig).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).To(Exit(0))
 							})
 						})
