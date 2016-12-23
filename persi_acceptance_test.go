@@ -162,8 +162,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					Context("when the app is bound", func() {
 						BeforeEach(func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.BindConfig).Wait(DEFAULT_TIMEOUT)
-								Expect(bindResponse).To(Exit(0))
+								if pConfig.BindConfig=="" {
+									bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
+									Expect(bindResponse).To(Exit(0))
+								} else {
+									bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.BindConfig).Wait(DEFAULT_TIMEOUT)
+									Expect(bindResponse).To(Exit(0))
+								}
 							})
 						})
 
