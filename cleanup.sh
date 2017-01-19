@@ -11,4 +11,5 @@ done
 
 cf purge-service-offering efs -f
 cf delete-service-broker pats-broker -f
-
+cf purge-service-offering nfs -f
+cf delete-service-broker nfsbroker -f
