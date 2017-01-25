@@ -227,6 +227,40 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(body).To(ContainSubstring("Hello Persistent World"))
 								Expect(status).To(Equal(http.StatusOK))
 							})
+
+							Context("when the app is scaled", func() {
+								const appScale = 5
+								BeforeEach(func() {
+									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
+										Expect(bindResponse).To(Exit(0))
+									})
+								})
+
+								It("should be able to create a test file then read it from any instance", func() {
+									fname, status, err := get(AppURL + "/create")
+									Expect(err).NotTo(HaveOccurred())
+									Expect(fname).To(ContainSubstring("pora"))
+									Expect(status).To(Equal(http.StatusOK))
+
+									responses := map[string]int{}
+									for i := 0; i < appScale * 10000; i++ {
+										body, status, err := get(AppURL + "/read/" + fname)
+										Expect(err).NotTo(HaveOccurred())
+										Expect(body).To(ContainSubstring("Hello Persistent World"))
+										Expect(status).To(Equal(http.StatusOK))
+										responses[body] = 1
+										if len(responses) >= appScale {break}
+									}
+									body, status, err := get(AppURL + "/delete/" + fname)
+									Expect(err).NotTo(HaveOccurred())
+									Expect(body).To(ContainSubstring(fname))
+									Expect(status).To(Equal(http.StatusOK))
+
+									Expect(len(responses)).To(Equal(appScale))
+								})
+
+							})
 						})
 					})
 				})
