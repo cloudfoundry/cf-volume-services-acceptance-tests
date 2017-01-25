@@ -252,7 +252,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(status).To(Equal(http.StatusOK))
 
 									responses := map[string]int{}
-									for i := 0; i < appScale * 10000; i++ {
+									for ;true; {
 										body, status, err := get(AppURL + "/read/" + fname)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(body).To(ContainSubstring("Hello Persistent World"))
