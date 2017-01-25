@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
+	"bytes"
 )
 
 var _ = Describe("Cloud Foundry Persistence", func() {
@@ -234,12 +235,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 										bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
 										Expect(bindResponse).To(Exit(0))
+
 										// wait for app to scale
-										Eventually(func() *Session {
-											apps := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
+										Eventually(func() int {
+											apps := cf.Cf("app", appName).Wait(DEFAULT_TIMEOUT)
 											Expect(apps).To(Exit(0))
-											return apps
-										}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say(appName + `\s*started\s*` + strconv.Itoa(appScale) + "/" + strconv.Itoa(appScale)))
+											return bytes.Count(apps.Out.Contents(), []byte("running"))
+										}, LONG_TIMEOUT, POLL_INTERVAL).Should(Equal(appScale))
 									})
 								})
 
