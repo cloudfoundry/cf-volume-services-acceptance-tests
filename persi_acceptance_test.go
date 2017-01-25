@@ -234,6 +234,12 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 										bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
 										Expect(bindResponse).To(Exit(0))
+										// wait for app to scale
+										Eventually(func() *Session {
+											apps := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
+											Expect(apps).To(Exit(0))
+											return apps
+										}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say(appName + `\s*started\s*` + strconv.Itoa(appScale) + "/" + strconv.Itoa(appScale)))
 									})
 								})
 
