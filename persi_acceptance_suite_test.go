@@ -16,6 +16,7 @@ import (
 
 	"os/exec"
 	"time"
+	"path/filepath"
 )
 
 var (
@@ -55,6 +56,22 @@ func TestPersiAcceptance(t *testing.T) {
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
 			deleteBroker(pConfig.BrokerUrl)
+
+			if pConfig.PushedBrokerName != "" {
+				// push the service broker as a cf application
+				Expect(pConfig.SqlServiceName).ToNot(BeEmpty())
+
+				appPath := os.Getenv("BROKER_APPLICATION_PATH")
+				Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
+
+				assetsPath := os.Getenv("ASSETS_PATH")
+				Expect(assetsPath).To(BeADirectory(), "ASSETS_PATH environment variable should be a directory")
+
+				Eventually(cf.Cf("update-security-group", "public_networks", filepath.Join(assetsPath, "security.json")), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("start", pConfig.PushedBrokerName), DEFAULT_TIMEOUT).Should(Exit(0))
+			}
 
 			createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
 			Expect(createServiceBroker).To(Exit(0))
@@ -128,6 +145,8 @@ type patsConfig struct {
 	ServerAddress  string `json:"server_addr"`
 	Share          string `json:"share"`
 	BindConfig     string `json:"bind_config"`
+	PushedBrokerName  string `json:"pushed_broker_name"`
+	SqlServiceName string `json:"sql_service_name"`
 }
 
 func getPatsSpecificConfig() error {
