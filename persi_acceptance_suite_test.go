@@ -25,7 +25,7 @@ var (
 	patsSuiteContext helpers.SuiteContext
 
 	patsTestContext     helpers.SuiteContext
-	patsTestEnvironment *helpers.Environment
+	patsTestEnvironment, patsAdminEnvironment *helpers.Environment
 
 	DEFAULT_TIMEOUT = 30 * time.Second
 	LONG_TIMEOUT    = 600 * time.Second
@@ -52,6 +52,10 @@ func TestPersiAcceptance(t *testing.T) {
 
 	SynchronizedBeforeSuite(func() []byte {
 		patsSuiteContext = helpers.NewContext(cfConfig)
+		if pConfig.PushedBrokerName != "" {
+			patsAdminEnvironment = helpers.NewEnvironment(patsTestContext)
+			patsAdminEnvironment.Setup()
+		}
 
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
@@ -92,12 +96,17 @@ func TestPersiAcceptance(t *testing.T) {
 		}
 	}, func() {
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			cf.Cf("delete", "-f", pConfig.PushedBrokerName)
+
 			session := cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
 			if session.ExitCode() != 0 {
 				cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
 				Fail("pats service broker could not be cleaned up.")
 			}
 		})
+		if patsAdminEnvironment != nil {
+			patsAdminEnvironment.Teardown()
+		}
 	})
 
 	if cfConfig.ArtifactsDirectory != "" {
