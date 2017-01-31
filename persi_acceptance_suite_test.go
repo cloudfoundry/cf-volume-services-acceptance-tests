@@ -53,7 +53,7 @@ func TestPersiAcceptance(t *testing.T) {
 	SynchronizedBeforeSuite(func() []byte {
 		patsSuiteContext = helpers.NewContext(cfConfig)
 		if pConfig.PushedBrokerName != "" {
-			patsAdminEnvironment = helpers.NewEnvironment(patsTestContext)
+			patsAdminEnvironment = helpers.NewEnvironment(patsSuiteContext)
 			patsAdminEnvironment.Setup()
 		}
 
