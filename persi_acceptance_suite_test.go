@@ -82,7 +82,7 @@ func TestPersiAcceptance(t *testing.T) {
 
 					Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), LONG_TIMEOUT).Should(Exit(0))
 					Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
-					Eventually(cf.Cf("start", pConfig.PushedBrokerName), DEFAULT_TIMEOUT).Should(Exit(0))
+					Eventually(cf.Cf("start", pConfig.PushedBrokerName), LONG_TIMEOUT).Should(Exit(0))
 			})
 		}
 
