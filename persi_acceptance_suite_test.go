@@ -106,9 +106,11 @@ func TestPersiAcceptance(t *testing.T) {
 			patsTestEnvironment.Teardown()
 		}
 	}, func() {
-		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 			cf.Cf("delete", "-f", pConfig.PushedBrokerName)
-
+			cf.Cf("delete-service", "-f", pConfig.SqlServiceName)
+		})
+		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			session := cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
 			if session.ExitCode() != 0 {
 				cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
