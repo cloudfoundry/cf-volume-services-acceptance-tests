@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"time"
 	"path/filepath"
+	"github.com/onsi/ginkgo/config"
 )
 
 var (
@@ -63,22 +64,28 @@ func TestPersiAcceptance(t *testing.T) {
 
 			assetsPath := os.Getenv("ASSETS_PATH")
 			Expect(assetsPath).To(BeADirectory(), "ASSETS_PATH environment variable should be a directory")
+
+			// TODO - create a new security group and bind it to just the space we created.
 			Eventually(cf.Cf("update-security-group", "public_networks", filepath.Join(assetsPath, "security.json")), DEFAULT_TIMEOUT).Should(Exit(0))
 		})
 
-		cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-			if pConfig.PushedBrokerName != "" {
-				// push the service broker as a cf application
-				Expect(pConfig.SqlServiceName).ToNot(BeEmpty())
+		if pConfig.PushedBrokerName != "" {
+			cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+					// push the service broker as a cf application
+					Expect(pConfig.SqlServiceName).ToNot(BeEmpty())
 
-				appPath := os.Getenv("BROKER_APPLICATION_PATH")
-				Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
+				  // TODO - uniqueify the cf service name to reduce failures
+				  // todo - parameterize the sql service name and plan name.
+				  Eventually(cf.Cf("create-service", "p-mysql", "100mb", pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
 
-				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("start", pConfig.PushedBrokerName), DEFAULT_TIMEOUT).Should(Exit(0))
-			}
-		})
+					appPath := os.Getenv("BROKER_APPLICATION_PATH")
+					Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
+
+					Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+					Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
+					Eventually(cf.Cf("start", pConfig.PushedBrokerName), DEFAULT_TIMEOUT).Should(Exit(0))
+			})
+		}
 
   	cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
