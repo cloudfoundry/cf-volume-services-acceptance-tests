@@ -17,7 +17,6 @@ import (
 	"os/exec"
 	"time"
 	"path/filepath"
-	"github.com/onsi/ginkgo/config"
 )
 
 var (
