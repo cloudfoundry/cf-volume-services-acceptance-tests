@@ -60,7 +60,9 @@ func TestPersiAcceptance(t *testing.T) {
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
 			deleteBroker(pConfig.BrokerUrl)
+		})
 
+		cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 			if pConfig.PushedBrokerName != "" {
 				// push the service broker as a cf application
 				Expect(pConfig.SqlServiceName).ToNot(BeEmpty())
@@ -72,11 +74,13 @@ func TestPersiAcceptance(t *testing.T) {
 				Expect(assetsPath).To(BeADirectory(), "ASSETS_PATH environment variable should be a directory")
 
 				Eventually(cf.Cf("update-security-group", "public_networks", filepath.Join(assetsPath, "security.json")), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 				Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
 				Eventually(cf.Cf("start", pConfig.PushedBrokerName), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
+		})
 
+  	cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
 			Expect(createServiceBroker).To(Exit(0))
 			Expect(createServiceBroker).To(Say(brokerName))
