@@ -14,9 +14,10 @@ import (
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 
+	"github.com/onsi/ginkgo/config"
 	"os/exec"
-	"time"
 	"path/filepath"
+	"time"
 )
 
 var (
@@ -24,7 +25,7 @@ var (
 	pConfig          patsConfig
 	patsSuiteContext helpers.SuiteContext
 
-	patsTestContext     helpers.SuiteContext
+	patsTestContext                           helpers.SuiteContext
 	patsTestEnvironment, patsAdminEnvironment *helpers.Environment
 
 	DEFAULT_TIMEOUT = 30 * time.Second
@@ -61,32 +62,34 @@ func TestPersiAcceptance(t *testing.T) {
 			// make sure we don't have a leftover service broker from another test
 			deleteBroker(pConfig.BrokerUrl)
 
-			assetsPath := os.Getenv("ASSETS_PATH")
-			Expect(assetsPath).To(BeADirectory(), "ASSETS_PATH environment variable should be a directory")
+			if pConfig.PushedBrokerName != "" {
+				assetsPath := os.Getenv("ASSETS_PATH")
+				Expect(assetsPath).To(BeADirectory(), "ASSETS_PATH environment variable should be a directory")
 
-			// TODO - create a new security group and bind it to just the space we created.
-			Eventually(cf.Cf("update-security-group", "public_networks", filepath.Join(assetsPath, "security.json")), DEFAULT_TIMEOUT).Should(Exit(0))
+				// TODO - create a new security group and bind it to just the space we created.
+				Eventually(cf.Cf("update-security-group", "public_networks", filepath.Join(assetsPath, "security.json")), DEFAULT_TIMEOUT).Should(Exit(0))
+			}
 		})
 
 		if pConfig.PushedBrokerName != "" {
 			cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-					// push the service broker as a cf application
-					Expect(pConfig.SqlServiceName).ToNot(BeEmpty())
+				// push the service broker as a cf application
+				Expect(pConfig.SqlServiceName).ToNot(BeEmpty())
 
-				  // TODO - uniqueify the cf service name to reduce failures
-				  // todo - parameterize the sql service name and plan name.
-				  Eventually(cf.Cf("create-service", "p-mysql", "100mb", pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
+				// TODO - uniqueify the cf service name to reduce failures
+				// todo - parameterize the sql service name and plan name.
+				Eventually(cf.Cf("create-service", "p-mysql", "100mb", pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
 
-					appPath := os.Getenv("BROKER_APPLICATION_PATH")
-					Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
+				appPath := os.Getenv("BROKER_APPLICATION_PATH")
+				Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
 
-					Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), LONG_TIMEOUT).Should(Exit(0))
-					Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
-					Eventually(cf.Cf("start", pConfig.PushedBrokerName), LONG_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), LONG_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("start", pConfig.PushedBrokerName), LONG_TIMEOUT).Should(Exit(0))
 			})
 		}
 
-  	cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
 			Expect(createServiceBroker).To(Exit(0))
 			Expect(createServiceBroker).To(Say(brokerName))
@@ -160,16 +163,16 @@ func defaults(config *helpers.Config) {
 }
 
 type patsConfig struct {
-	ServiceName    string `json:"service_name"`
-	PlanName       string `json:"plan_name"`
-	BrokerUrl      string `json:"broker_url"`
-	BrokerUser     string `json:"broker_user"`
-	BrokerPassword string `json:"broker_password"`
-	ServerAddress  string `json:"server_addr"`
-	Share          string `json:"share"`
-	BindConfig     string `json:"bind_config"`
-	PushedBrokerName  string `json:"pushed_broker_name"`
-	SqlServiceName string `json:"sql_service_name"`
+	ServiceName      string `json:"service_name"`
+	PlanName         string `json:"plan_name"`
+	BrokerUrl        string `json:"broker_url"`
+	BrokerUser       string `json:"broker_user"`
+	BrokerPassword   string `json:"broker_password"`
+	ServerAddress    string `json:"server_addr"`
+	Share            string `json:"share"`
+	BindConfig       string `json:"bind_config"`
+	PushedBrokerName string `json:"pushed_broker_name"`
+	SqlServiceName   string `json:"sql_service_name"`
 }
 
 func getPatsSpecificConfig() error {
@@ -183,7 +186,7 @@ func getPatsSpecificConfig() error {
 
 	config := &patsConfig{
 		ServerAddress: "NotUsed",
-		Share: "NotUsed",
+		Share:         "NotUsed",
 	}
 	err = decoder.Decode(config)
 	if err != nil {
