@@ -280,6 +280,9 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											bindConfig := `{"uid":"5000","gid":"5000"}`
 											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
 											Expect(bindResponse).To(Exit(0))
+
+											startResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
+											Expect(startResponse).To(Exit(0))
 										})
 									})
 									AfterEach(func() {
