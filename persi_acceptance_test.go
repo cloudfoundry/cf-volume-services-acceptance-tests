@@ -137,8 +137,9 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				})
 
 				Context("given an installed cf app", func() {
+					var appPath string
 					BeforeEach(func() {
-						appPath := os.Getenv("TEST_APPLICATION_PATH")
+						appPath = os.Getenv("TEST_APPLICATION_PATH")
 						Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
@@ -163,7 +164,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					Context("when the app is bound", func() {
 						BeforeEach(func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								if pConfig.BindConfig=="" {
+								if pConfig.BindConfig == "" {
 									bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 									Expect(bindResponse).To(Exit(0))
 								} else {
@@ -229,46 +230,98 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(status).To(Equal(http.StatusOK))
 							})
 
-							Context("when the app is scaled", func() {
-								const appScale = 5
-								BeforeEach(func() {
-									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-										bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
-										Expect(bindResponse).To(Exit(0))
+							if os.Getenv("TEST_MULTI_CELL") == "true" {
+								Context("when the app is scaled across cells", func() {
+									const appScale = 5
+									BeforeEach(func() {
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
+											Expect(bindResponse).To(Exit(0))
 
-										// wait for app to scale
-										Eventually(func() int {
-											apps := cf.Cf("app", appName).Wait(DEFAULT_TIMEOUT)
-											Expect(apps).To(Exit(0))
-											return bytes.Count(apps.Out.Contents(), []byte("running"))
-										}, LONG_TIMEOUT, POLL_INTERVAL).Should(Equal(appScale))
+											// wait for app to scale
+											Eventually(func() int {
+												apps := cf.Cf("app", appName).Wait(DEFAULT_TIMEOUT)
+												Expect(apps).To(Exit(0))
+												return bytes.Count(apps.Out.Contents(), []byte("running"))
+											}, LONG_TIMEOUT, POLL_INTERVAL).Should(Equal(appScale))
+										})
+									})
+
+									It("should be able to create a test file then read it from any instance", func() {
+										fname, status, err := get(AppURL + "/create")
+										Expect(err).NotTo(HaveOccurred())
+										Expect(fname).To(ContainSubstring("pora"))
+										Expect(status).To(Equal(http.StatusOK))
+
+										responses := map[string]int{}
+										for i := 0; i < appScale*10000; i++ {
+											body, status, err := get(AppURL + "/read/" + fname)
+											Expect(err).NotTo(HaveOccurred())
+											Expect(body).To(ContainSubstring("Hello Persistent World"))
+											Expect(status).To(Equal(http.StatusOK))
+											responses[body] = 1
+											if len(responses) >= appScale {break}
+										}
+										body, status, err := get(AppURL + "/delete/" + fname)
+										Expect(err).NotTo(HaveOccurred())
+										Expect(body).To(ContainSubstring(fname))
+										Expect(status).To(Equal(http.StatusOK))
+
+										Expect(len(responses)).To(Equal(appScale))
 									})
 								})
+							}
+							if os.Getenv("TEST_MOUNT_OPTIONS") == "true" {
+								Context("when a second app is bound with a different uid and gid", func() {
+									var (
+										app2Name string
+									)
+									BeforeEach(func() {
+										app2Name = appName + "-2"
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
-								It("should be able to create a test file then read it from any instance", func() {
-									fname, status, err := get(AppURL + "/create")
-									Expect(err).NotTo(HaveOccurred())
-									Expect(fname).To(ContainSubstring("pora"))
-									Expect(status).To(Equal(http.StatusOK))
+											bindConfig := `{"uid":"5000","gid":"5000"}`
+											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
+											Expect(bindResponse).To(Exit(0))
+										})
+									})
 
-									responses := map[string]int{}
-									for ;true; {
+									It("should enforce correct user permissions on files", func() {
+										app2URL := "http://" + app2Name + "." + cfConfig.AppsDomain
+
+										fname, status, err := get(AppURL + "/create")
+										Expect(err).NotTo(HaveOccurred())
+										Expect(fname).To(ContainSubstring("pora"))
+										Expect(status).To(Equal(http.StatusOK))
+
 										body, status, err := get(AppURL + "/read/" + fname)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(body).To(ContainSubstring("Hello Persistent World"))
 										Expect(status).To(Equal(http.StatusOK))
-										responses[body] = 1
-										if len(responses) >= appScale {break}
-									}
-									body, status, err := get(AppURL + "/delete/" + fname)
-									Expect(err).NotTo(HaveOccurred())
-									Expect(body).To(ContainSubstring(fname))
-									Expect(status).To(Equal(http.StatusOK))
 
-									Expect(len(responses)).To(Equal(appScale))
+										_, _, err = get(app2URL + "/read/" + fname)
+										Expect(err).To(HaveOccurred())
+
+										_, _, err = get(app2URL + "/delete/" + fname)
+										Expect(err).To(HaveOccurred())
+
+										body, status, err = get(AppURL + "/delete/" + fname)
+										Expect(err).NotTo(HaveOccurred())
+										Expect(body).To(ContainSubstring(fname))
+										Expect(status).To(Equal(http.StatusOK))
+									})
+
+									AfterEach(func() {
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
+
+											cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+										})
+									})
 								})
-
-							})
+							}
 						})
 					})
 				})
