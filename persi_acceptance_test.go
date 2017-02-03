@@ -318,8 +318,9 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 
 										It("should not be deletable by the second app", func() {
-											_, _, err := get(app2URL + "/delete/" + fname)
-											Expect(err).To(HaveOccurred())
+											body, status, _ := get(app2URL + "/delete/" + fname)
+											Expect(body).NotTo(ContainSubstring("deleted"))
+											Expect(status).To(Equal(http.StatusOK))
 										})
 									})
 								})
