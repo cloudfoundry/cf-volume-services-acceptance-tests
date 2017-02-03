@@ -14,7 +14,6 @@ import (
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 
-	"github.com/onsi/ginkgo/config"
 	"os/exec"
 	"path/filepath"
 	"time"
