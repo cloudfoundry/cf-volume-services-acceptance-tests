@@ -137,7 +137,7 @@ func deleteFile(res http.ResponseWriter, req *http.Request) {
 
 	err := os.Remove(mountPointPath)
 	if err != nil {
-		res.WriteHeader(http.StatusNotFound)
+		res.WriteHeader(http.StatusForbidden)
 		res.Write([]byte(err.Error()))
 		return
 	}

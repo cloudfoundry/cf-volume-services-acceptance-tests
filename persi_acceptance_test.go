@@ -281,13 +281,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
 											Expect(bindResponse).To(Exit(0))
 
-											startResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
+											startResponse := cf.Cf("start", app2Name).Wait(LONG_TIMEOUT)
 											Expect(startResponse).To(Exit(0))
 										})
 									})
 									AfterEach(func() {
 										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
+											cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
 
 											cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 										})
