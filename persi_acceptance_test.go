@@ -298,11 +298,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										var (
 											fname   string
 											app2URL string
+											status  int
+											err error
 										)
 										BeforeEach(func() {
 											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-											fname, status, err := get(appURL + "/create")
+											fname, status, err = get(appURL + "/create")
 											Expect(err).NotTo(HaveOccurred())
 											Expect(fname).To(ContainSubstring("pora"))
 											Expect(status).To(Equal(http.StatusOK))
