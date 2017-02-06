@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
+	"fmt"
 )
 
 var _ = Describe("Cloud Foundry Persistence", func() {
@@ -307,21 +308,21 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											Expect(status).To(Equal(http.StatusOK))
 										})
 										AfterEach(func() {
-											body, status, err := get(appURL + "/delete/" + fname)
+											body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
 											Expect(err).NotTo(HaveOccurred())
 											Expect(body).To(ContainSubstring(fname))
 											Expect(status).To(Equal(http.StatusOK))
 										})
 
 										It("should be readable by the second app", func() {
-											body, status, err := get(app2URL + "/read/" + fname)
+											body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
 											Expect(err).NotTo(HaveOccurred())
 											Expect(body).To(ContainSubstring("Hello Persistent World"))
 											Expect(status).To(Equal(http.StatusOK))
 										})
 
 										It("should not be deletable by the second app", func() {
-											body, status, _ := get(app2URL + "/delete/" + fname)
+											body, status, _ := get(fmt.Sprintf("%s/delete/%s", app2URL, fname))
 											Expect(body).NotTo(ContainSubstring("deleted"))
 											Expect(status).NotTo(Equal(http.StatusOK))
 										})
