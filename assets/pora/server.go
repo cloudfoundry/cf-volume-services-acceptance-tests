@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"path/filepath"
+	"strconv"
 )
 
 func main() {
@@ -17,6 +18,7 @@ func main() {
 	http.HandleFunc("/write", write)
 	http.HandleFunc("/create", createFile)
 	http.HandleFunc("/read/", readFile)
+	http.HandleFunc("/chmod/", chmodFile)
 	http.HandleFunc("/delete/", deleteFile)
 	fmt.Println("listening...")
 
@@ -129,6 +131,30 @@ func readFile(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte("instance index: " + os.Getenv("INSTANCE_INDEX")))
 	return
 }
+
+func chmodFile(res http.ResponseWriter, req *http.Request) {
+	parts := strings.Split(req.URL.Path, "/")
+	fileName := parts[len(parts) - 2]
+	mountPointPath := filepath.Join(getPath(), fileName)
+	mode := parts[len(parts) - 1]
+	parsedMode, err := strconv.ParseUint(mode, 10, 32)
+	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		res.Write([]byte(err.Error()))
+	}
+	err = os.Chmod(mountPointPath, os.FileMode(uint(parsedMode)))
+	if err != nil {
+		res.WriteHeader(http.StatusForbidden)
+		res.Write([]byte(err.Error()))
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+	res.Write([]byte(fileName + "->" + mode))
+	res.Write([]byte("instance index: " + os.Getenv("INSTANCE_INDEX")))
+	return
+}
+
 
 func deleteFile(res http.ResponseWriter, req *http.Request) {
 	parts := strings.Split(req.URL.Path, "/")
