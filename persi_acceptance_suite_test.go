@@ -82,9 +82,7 @@ func TestPersiAcceptance(t *testing.T) {
 				appPath := os.Getenv("BROKER_APPLICATION_PATH")
 				Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
 
-				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), LONG_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("bind-service", pConfig.PushedBrokerName, pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("start", pConfig.PushedBrokerName), LONG_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-p", appPath, "-f", appPath+"/manifest.yml"), LONG_TIMEOUT).Should(Exit(0))
 			})
 		}
 
