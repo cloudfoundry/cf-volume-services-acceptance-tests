@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+	"github.com/onsi/ginkgo/config"
 )
 
 var (
@@ -72,13 +73,13 @@ func TestPersiAcceptance(t *testing.T) {
 
 		if pConfig.PushedBrokerName != "" {
 			cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+				if pConfig.SqlServiceName != "" {
+					// TODO - uniqueify the cf service name to reduce failures
+					// todo - parameterize the sql service name and plan name.
+					Eventually(cf.Cf("create-service", "p-mysql", "100mb", pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
+				}
+
 				// push the service broker as a cf application
-				Expect(pConfig.SqlServiceName).ToNot(BeEmpty())
-
-				// TODO - uniqueify the cf service name to reduce failures
-				// todo - parameterize the sql service name and plan name.
-				Eventually(cf.Cf("create-service", "p-mysql", "100mb", pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
-
 				appPath := os.Getenv("BROKER_APPLICATION_PATH")
 				Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
 
@@ -108,7 +109,9 @@ func TestPersiAcceptance(t *testing.T) {
 		if pConfig.PushedBrokerName != "" {
 			cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 				cf.Cf("delete", "-f", pConfig.PushedBrokerName)
-				cf.Cf("delete-service", "-f", pConfig.SqlServiceName)
+				if pConfig.SqlServiceName != "" {
+					cf.Cf("delete-service", "-f", pConfig.SqlServiceName)
+				}
 			})
 		}
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
