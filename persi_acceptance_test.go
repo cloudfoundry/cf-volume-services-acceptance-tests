@@ -331,6 +331,83 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 								})
 							}
+							if os.Getenv("TEST_READ_ONLY") == "true" {
+								Context("when a second app is bound with a readonly mount", func() {
+									var (
+										app2Name string
+									)
+									BeforeEach(func() {
+										app2Name = appName + "-2"
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
+
+											bindConfig := `{"readonly":true}`
+											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
+											Expect(bindResponse).To(Exit(0))
+
+											startResponse := cf.Cf("start", app2Name).Wait(LONG_TIMEOUT)
+											Expect(startResponse).To(Exit(0))
+										})
+									})
+									AfterEach(func() {
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
+
+											cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+										})
+									})
+
+									Context("when the second app tries to write a file", func() {
+										var (
+											fname   string
+											app2URL string
+											status  int
+											err error
+										)
+										BeforeEach(func() {
+											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+
+											fname, status, err = get(app2URL + "/create")
+										})
+
+										It("should fail to write the file", func() {
+											Expect(err).To(HaveOccurred())
+											Expect(status).NotTo(Equal(http.StatusOK))
+										})
+									})
+
+									Context("when the first app creates a file", func() {
+										var (
+											fname   string
+											app2URL string
+											status  int
+											err error
+										)
+										BeforeEach(func() {
+											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+
+											fname, status, err = get(appURL + "/create")
+											Expect(err).NotTo(HaveOccurred())
+											Expect(fname).To(ContainSubstring("pora"))
+											Expect(status).To(Equal(http.StatusOK))
+										})
+										AfterEach(func() {
+											body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
+											Expect(err).NotTo(HaveOccurred())
+											Expect(body).To(ContainSubstring(fname))
+											Expect(status).To(Equal(http.StatusOK))
+										})
+
+										It("should be readable by the second app", func() {
+											body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
+											Expect(err).NotTo(HaveOccurred())
+											Expect(body).To(ContainSubstring("Hello Persistent World"))
+											Expect(status).To(Equal(http.StatusOK))
+										})
+									})
+								})
+							}
 						})
 					})
 				})
