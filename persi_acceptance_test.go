@@ -360,7 +360,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 									Context("when the second app tries to write a file", func() {
 										var (
-											fname   string
+											body   string
 											app2URL string
 											status  int
 											err error
@@ -368,12 +368,11 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										BeforeEach(func() {
 											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-											fname, status, err = get(app2URL + "/create")
+											body, status, err = get(app2URL + "/create")
 										})
 
 										It("should fail to write the file", func() {
-											Expect(err).To(HaveOccurred())
-											Expect(status).NotTo(Equal(http.StatusOK))
+											Expect(body).To(ContainSubstring("read-only file system"))
 										})
 									})
 
