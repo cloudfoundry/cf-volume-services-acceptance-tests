@@ -138,7 +138,7 @@ func chmodFile(res http.ResponseWriter, req *http.Request) {
 	fileName := parts[len(parts) - 2]
 	mountPointPath := filepath.Join(getPath(), fileName)
 	mode := parts[len(parts) - 1]
-	parsedMode, err := strconv.ParseUint(mode, 10, 32)
+	parsedMode, err := strconv.ParseUint(mode, 8, 32)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write([]byte(err.Error()))
