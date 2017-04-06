@@ -10,6 +10,7 @@ import (
 	"strings"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 func main() {
@@ -179,7 +180,12 @@ func env(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+var isSeeded=false
 func randomString(n int) string {
+	if (!isSeeded) {
+		rand.Seed(time.Now().UnixNano())
+		isSeeded = true
+	}
 	runes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 	b := make([]rune, n)
