@@ -133,10 +133,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				Context("given an installed cf app", func() {
 					var appPath string
 					BeforeEach(func() {
-						appPath = os.Getenv("TEST_APPLICATION_PATH")
-						Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-							Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+							if os.Getenv("TEST_DOCKER_PORA") == "true" {
+								Eventually(cf.Cf("push", appName, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+							} else {
+								appPath = os.Getenv("TEST_APPLICATION_PATH")
+								Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+								Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+							}
 							Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(appName), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 						})
 					})
@@ -275,7 +279,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									BeforeEach(func() {
 										app2Name = appName + "-2"
 										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											if os.Getenv("TEST_DOCKER_PORA") == "true" {
+												Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											} else {
+												appPath = os.Getenv("TEST_APPLICATION_PATH")
+												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											}
 											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
 											bindConfig := `{"uid":"5000","gid":"5000"}`
@@ -339,7 +349,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									BeforeEach(func() {
 										app2Name = appName + "-2"
 										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											if os.Getenv("TEST_DOCKER_PORA") == "true" {
+												Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											} else {
+												appPath = os.Getenv("TEST_APPLICATION_PATH")
+												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+											}
 											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
 											bindConfig := `{"readonly":true}`
