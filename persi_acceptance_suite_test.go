@@ -68,6 +68,10 @@ func TestPersiAcceptance(t *testing.T) {
 				// TODO - create a new security group and bind it to just the space we created.
 				Eventually(cf.Cf("update-security-group", "public_networks", filepath.Join(assetsPath, "security.json")), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
+
+			if os.Getenv("TEST_DOCKER_PORA") == "true" {
+				Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
+			}
 		})
 
 		if pConfig.PushedBrokerName != "" {
@@ -114,6 +118,10 @@ func TestPersiAcceptance(t *testing.T) {
 			})
 		}
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			if os.Getenv("TEST_DOCKER_PORA") == "true" {
+				Eventually(cf.Cf("disable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
+			}
+
 			session := cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
 			if session.ExitCode() != 0 {
 				cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
