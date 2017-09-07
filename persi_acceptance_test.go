@@ -9,12 +9,13 @@ import (
 	"strconv"
 
 	"bytes"
+	"fmt"
+
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
-	"fmt"
 )
 
 var _ = Describe("Cloud Foundry Persistence", func() {
@@ -91,11 +92,10 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				BeforeEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						var createService *Session
-						if pConfig.ServerAddress == "NotUsed" {
+						if pConfig.CreateConfig == "" {
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						} else {
-							nfsParams := `{"share": "` + pConfig.ServerAddress + pConfig.Share + `"}`
-							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", nfsParams).Wait(DEFAULT_TIMEOUT)
+							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", pConfig.CreateConfig).Wait(DEFAULT_TIMEOUT)
 						}
 						Expect(createService).To(Exit(0))
 					})
@@ -139,7 +139,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							} else {
 								appPath = os.Getenv("TEST_APPLICATION_PATH")
 								Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-								Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+								Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 							}
 							Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(appName), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 						})
@@ -284,7 +284,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											} else {
 												appPath = os.Getenv("TEST_APPLICATION_PATH")
 												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 											}
 											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
@@ -309,7 +309,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											fname   string
 											app2URL string
 											status  int
-											err error
+											err     error
 										)
 										BeforeEach(func() {
 											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
@@ -354,7 +354,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											} else {
 												appPath = os.Getenv("TEST_APPLICATION_PATH")
 												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath + "/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 											}
 											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
@@ -376,10 +376,10 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 									Context("when the second app tries to write a file", func() {
 										var (
-											body   string
+											body    string
 											app2URL string
 											status  int
-											err error
+											err     error
 										)
 										BeforeEach(func() {
 											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
@@ -397,7 +397,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											fname   string
 											app2URL string
 											status  int
-											err error
+											err     error
 										)
 										BeforeEach(func() {
 											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain

@@ -180,6 +180,7 @@ type patsConfig struct {
 	BindConfig       string `json:"bind_config"`
 	PushedBrokerName string `json:"pushed_broker_name"`
 	SqlServiceName   string `json:"sql_service_name"`
+	CreateConfig     string `json:"create_config"`
 }
 
 func getPatsSpecificConfig() error {
@@ -191,10 +192,7 @@ func getPatsSpecificConfig() error {
 
 	decoder := json.NewDecoder(configFile)
 
-	config := &patsConfig{
-		ServerAddress: "NotUsed",
-		Share:         "NotUsed",
-	}
+	config := &patsConfig{}
 	err = decoder.Decode(config)
 	if err != nil {
 		return err
