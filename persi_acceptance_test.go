@@ -358,7 +358,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											}
 											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
-											bindConfig := `{"readonly":true}`
+											bindConfig := pConfig.BindConfig
+											if bindConfig == "" || strings.Contains(bindConfig, "{}") {
+												bindConfig = `{"readonly":true}`
+											} else {
+												bindConfig = strings.Replace(bindConfig, "}", `,"readonly":true}`, 1)
+											}
+
 											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
 											Expect(bindResponse).To(Exit(0))
 
