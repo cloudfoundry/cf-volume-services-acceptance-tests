@@ -50,19 +50,19 @@ func hello(res http.ResponseWriter, req *http.Request) {
 }
 
 func getPath() string {
-	r, err := regexp.Compile("\"container_(dir|path)\": \"([^\"]+)\"")
+	r, err := regexp.Compile(`"container_dir":\s*"([^"]+)"`)
 	if err != nil {
 		panic(err)
 	}
 
 	vcapEnv := os.Getenv("VCAP_SERVICES")
 	match := r.FindStringSubmatch(vcapEnv)
-	if len(match) < 3 {
+	if len(match) < 2 {
 		fmt.Fprintf(os.Stderr, "VCAP_SERVICES is %s", vcapEnv)
 		panic("failed to find container_dir in environment json")
 	}
 
-	return match[2]
+	return match[1]
 }
 
 func write(res http.ResponseWriter, req *http.Request) {
