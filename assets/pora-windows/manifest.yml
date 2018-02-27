@@ -1,0 +1,5 @@
+---
+  stack: windows2012R2
+  buildpack: binary_buildpack
+  command: ./server.exe
+
