@@ -142,7 +142,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 								if os.Getenv("TEST_WINDOWS_CELL") == "true" {
 									appPathToUse := fmt.Sprintf("%s-%s", appPath, "windows")
-									Eventually(cf.Cf("push", appName, "-s", "windows2016", "-p", appPathToUse, "-f", appPathToUse+"/-manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+									Eventually(cf.Cf("push", appName, "-s", "windows2016", "-p", appPathToUse, "-f", appPathToUse+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 								} else {
 									Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 								}
