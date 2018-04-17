@@ -15,7 +15,6 @@ import (
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 
 	"os/exec"
-	"path/filepath"
 	"time"
 )
 
@@ -52,43 +51,15 @@ func TestPersiAcceptance(t *testing.T) {
 
 	SynchronizedBeforeSuite(func() []byte {
 		patsSuiteContext = helpers.NewContext(cfConfig)
-		if pConfig.PushedBrokerName != "" {
-			patsAdminEnvironment = helpers.NewEnvironment(patsSuiteContext)
-			patsAdminEnvironment.Setup()
-		}
 
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
 			deleteBroker(pConfig.BrokerUrl)
 
-			if pConfig.PushedBrokerName != "" {
-				assetsPath := os.Getenv("ASSETS_PATH")
-				Expect(assetsPath).To(BeADirectory(), "ASSETS_PATH environment variable should be a directory")
-
-				// TODO - create a new security group and bind it to just the space we created.
-				Eventually(cf.Cf("update-security-group", "public_networks", filepath.Join(assetsPath, "security.json")), DEFAULT_TIMEOUT).Should(Exit(0))
-			}
-
 			if os.Getenv("TEST_DOCKER_PORA") == "true" {
 				Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
 		})
-
-		if pConfig.PushedBrokerName != "" {
-			cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-				if pConfig.SqlServiceName != "" {
-					// TODO - uniqueify the cf service name to reduce failures
-					// todo - parameterize the sql service name and plan name.
-					Eventually(cf.Cf("create-service", "p-mysql", "100mb", pConfig.SqlServiceName), DEFAULT_TIMEOUT).Should(Exit(0))
-				}
-
-				// push the service broker as a cf application
-				appPath := os.Getenv("BROKER_APPLICATION_PATH")
-				Expect(appPath).To(BeADirectory(), "BROKER_APPLICATION_PATH environment variable should point to a CF application")
-
-				Eventually(cf.Cf("push", pConfig.PushedBrokerName, "-i", "5", "-p", appPath, "-f", appPath+"/manifest.yml"), LONG_TIMEOUT).Should(Exit(0))
-			})
-		}
 
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
@@ -109,14 +80,6 @@ func TestPersiAcceptance(t *testing.T) {
 			patsTestEnvironment.Teardown()
 		}
 	}, func() {
-		if pConfig.PushedBrokerName != "" {
-			cf.AsUser(patsSuiteContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-				cf.Cf("delete", "-f", pConfig.PushedBrokerName)
-				if pConfig.SqlServiceName != "" {
-					cf.Cf("delete-service", "-f", pConfig.SqlServiceName)
-				}
-			})
-		}
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			if os.Getenv("TEST_DOCKER_PORA") == "true" {
 				Eventually(cf.Cf("disable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
@@ -177,8 +140,6 @@ type patsConfig struct {
 	BrokerPassword   string `json:"broker_password"`
 	CreateConfig     string `json:"create_config"`
 	BindConfig       string `json:"bind_config"`
-	PushedBrokerName string `json:"pushed_broker_name"`
-	SqlServiceName   string `json:"sql_service_name"`
 }
 
 func getPatsSpecificConfig() error {
