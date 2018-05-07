@@ -6,10 +6,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"regexp"
-	"strings"
 	"path/filepath"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -77,7 +77,6 @@ func write(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.WriteHeader(http.StatusOK)
 	body, err := ioutil.ReadFile(mountPointPath)
 	if err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
@@ -94,6 +93,7 @@ func write(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	res.WriteHeader(http.StatusOK)
 	res.Write(body)
 	return
 }
@@ -117,7 +117,7 @@ func createFile(res http.ResponseWriter, req *http.Request) {
 
 func readFile(res http.ResponseWriter, req *http.Request) {
 	parts := strings.Split(req.URL.Path, "/")
-	fileName := parts[len(parts) - 1]
+	fileName := parts[len(parts)-1]
 	mountPointPath := filepath.Join(getPath(), fileName)
 
 	body, err := ioutil.ReadFile(mountPointPath)
@@ -135,9 +135,9 @@ func readFile(res http.ResponseWriter, req *http.Request) {
 
 func chmodFile(res http.ResponseWriter, req *http.Request) {
 	parts := strings.Split(req.URL.Path, "/")
-	fileName := parts[len(parts) - 2]
+	fileName := parts[len(parts)-2]
 	mountPointPath := filepath.Join(getPath(), fileName)
-	mode := parts[len(parts) - 1]
+	mode := parts[len(parts)-1]
 	parsedMode, err := strconv.ParseUint(mode, 8, 32)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
@@ -156,10 +156,9 @@ func chmodFile(res http.ResponseWriter, req *http.Request) {
 	return
 }
 
-
 func deleteFile(res http.ResponseWriter, req *http.Request) {
 	parts := strings.Split(req.URL.Path, "/")
-	fileName := parts[len(parts) - 1]
+	fileName := parts[len(parts)-1]
 	mountPointPath := filepath.Join(getPath(), fileName)
 
 	err := os.Remove(mountPointPath)
@@ -180,9 +179,10 @@ func env(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-var isSeeded=false
+var isSeeded = false
+
 func randomString(n int) string {
-	if (!isSeeded) {
+	if !isSeeded {
 		rand.Seed(time.Now().UnixNano())
 		isSeeded = true
 	}
