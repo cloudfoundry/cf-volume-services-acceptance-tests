@@ -386,6 +386,16 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 									})
 
+									It("should include the volume mount as read only in the second application's environment", func() {
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											env := cf.Cf("env", app2Name).Wait(DEFAULT_TIMEOUT)
+											Expect(env).To(Exit(0))
+											Expect(env).To(Say(pConfig.ServiceName))
+											Expect(env).To(Say(instanceName))
+											Expect(env).To(Say(`"r"`))
+										})
+									})
+
 									Context("when the second app tries to write a file", func() {
 										var (
 											body    string
