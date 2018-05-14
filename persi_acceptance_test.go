@@ -21,6 +21,7 @@ import (
 var _ = Describe("Cloud Foundry Persistence", func() {
 	var (
 		appHost, appURL, appName, instanceName string
+		bogusAppName, bogusInstanceName        string
 	)
 
 	BeforeEach(func() {
@@ -30,7 +31,9 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		appName = "pats-pora"
 
 		instanceName = cfConfig.NamePrefix + "-" + instanceName + parallelNode
+		bogusInstanceName = cfConfig.NamePrefix + "-bogus-" + instanceName + parallelNode
 		appName = cfConfig.NamePrefix + "-" + appName + parallelNode
+		bogusAppName = cfConfig.NamePrefix + "-bogus-" + appName + parallelNode
 
 		appHost = appName + "." + cfConfig.AppsDomain
 		appURL = "http://" + appHost
@@ -91,11 +94,20 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 			Context("given a service instance", func() {
 				BeforeEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-						var createService *Session
+						var createService, createBogusService *Session
 						if pConfig.CreateConfig == "" {
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						} else {
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", pConfig.CreateConfig).Wait(DEFAULT_TIMEOUT)
+						}
+
+						if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
+							if pConfig.CreateBogusConfig == "" {
+								createBogusService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, bogusInstanceName).Wait(DEFAULT_TIMEOUT)
+							} else {
+								createBogusService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, bogusInstanceName, "-c", pConfig.CreateBogusConfig).Wait(DEFAULT_TIMEOUT)
+							}
+							Expect(createBogusService).To(Exit(0))
 						}
 						Expect(createService).To(Exit(0))
 					})
@@ -106,11 +118,22 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						Expect(serviceDetails).To(Exit(0))
 						return serviceDetails
 					}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
+
+					if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
+						Eventually(func() *Session {
+							serviceDetails := cf.Cf("service", bogusInstanceName).Wait(DEFAULT_TIMEOUT)
+							Expect(serviceDetails).To(Exit(0))
+							return serviceDetails
+						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
+					}
 				})
 
 				AfterEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
+						if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
+							cf.Cf("delete-service", bogusInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
+						}
 					})
 
 					// wait for async service to finish
@@ -123,12 +146,60 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 						cf.Cf("purge-service-instance", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
 					})
+
+					if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
+						Eventually(func() *Session {
+							serviceDetails := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
+							Expect(serviceDetails).To(Exit(0))
+							return serviceDetails
+						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Not(Say(bogusInstanceName)))
+
+						cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+							cf.Cf("purge-service-instance", bogusInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
+						})
+					}
 				})
 
 				It("should have a service", func() {
 					services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 					Expect(services).To(Say(instanceName))
 				})
+
+				if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
+					Context("given an installed cf app bound to bogus service", func() {
+						var appPath string
+						BeforeEach(func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								appPath = os.Getenv("TEST_APPLICATION_PATH")
+								Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+								Eventually(cf.Cf("push", bogusAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+								Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(bogusAppName), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
+								if pConfig.BindBogusConfig == "" {
+									bindResponse := cf.Cf("bind-service", bogusAppName, bogusInstanceName).Wait(DEFAULT_TIMEOUT)
+									Expect(bindResponse).To(Exit(0))
+								} else {
+									bindResponse := cf.Cf("bind-service", bogusAppName, bogusInstanceName, "-c", pConfig.BindBogusConfig).Wait(DEFAULT_TIMEOUT)
+									Expect(bindResponse).To(Exit(0))
+								}
+								startResponse := cf.Cf("start", bogusAppName).Wait(LONG_TIMEOUT)
+								Expect(startResponse).To(Exit(1))
+							})
+						})
+
+						AfterEach(func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								cf.Cf("unbind-service", bogusAppName, bogusInstanceName).Wait(DEFAULT_TIMEOUT)
+								cf.Cf("delete", bogusAppName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+							})
+						})
+
+						It("should see errors in cf logs", func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								Eventually(cf.Cf("logs", bogusAppName, "--recent").Wait(DEFAULT_TIMEOUT)).Should(Say("Failed to mount nfs share"))
+							})
+						})
+					})
+				}
 
 				Context("given an installed cf app", func() {
 					var appPath string
