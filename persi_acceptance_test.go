@@ -305,7 +305,34 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(status).To(Equal(http.StatusOK))
 							})
 
+
 							if os.Getenv("TEST_MULTI_CELL") == "true" {
+								It("should keep the data across multiple stops and starts", func() {
+									fname, status, err := get(appURL + "/create")
+									Expect(err).NotTo(HaveOccurred())
+									Expect(fname).To(ContainSubstring("pora"))
+									Expect(status).To(Equal(http.StatusOK))
+
+									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										for i:=0; i < 20; i++ {
+											stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+											Expect(stopResponse).To(Exit(0))
+											startResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
+											Expect(startResponse).To(Exit(0))
+										}
+									})
+
+									body, status, err := get(appURL + "/read/" + fname)
+									Expect(err).NotTo(HaveOccurred())
+									Expect(body).To(ContainSubstring("Hello Persistent World"))
+									Expect(status).To(Equal(http.StatusOK))
+
+									body2, status, err := get(appURL + "/delete/" + fname)
+									Expect(err).NotTo(HaveOccurred())
+									Expect(body2).To(ContainSubstring(fname))
+									Expect(status).To(Equal(http.StatusOK))
+								})
+
 								Context("when the app is scaled across cells", func() {
 									const appScale = 5
 									BeforeEach(func() {
