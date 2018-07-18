@@ -73,6 +73,11 @@ func TestPersiAcceptance(t *testing.T) {
 		patsTestEnvironment = helpers.NewEnvironment(patsTestContext)
 
 		patsTestEnvironment.Setup()
+		isolationSegmentName := os.Getenv("TEST_ISOLATION_SEGMENT")
+		if isolationSegmentName != "" {
+			Eventually(cf.Cf("create-isolation-segment", isolationSegmentName), DEFAULT_TIMEOUT).Should(Exit(0))
+			Eventually(cf.Cf("set-org-default-isolation-segment", patsTestContext.RegularUserContext().Org, isolationSegmentName), DEFAULT_TIMEOUT).Should(Exit(0))
+		}
 	})
 
 	SynchronizedAfterSuite(func() {
