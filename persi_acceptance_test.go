@@ -563,9 +563,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					})
 
 					Context("when bind config is not allowed", func() {
-						if pConfig.DisallowedLdapBindConfig == "" {
-							Skip("not testing LDAP config")
-						}
 
 						AfterEach(func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
@@ -576,6 +573,10 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 
 						It("fails to start", func() {
+							if pConfig.DisallowedLdapBindConfig == "" {
+								Skip("not testing LDAP config")
+							}
+
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedLdapBindConfig).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).To(Exit(0))
