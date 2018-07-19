@@ -18,6 +18,7 @@ func main() {
 	http.HandleFunc("/env", env)
 	http.HandleFunc("/write", write)
 	http.HandleFunc("/create", createFile)
+	http.HandleFunc("/loadtest", dataLoad)
 	http.HandleFunc("/read/", readFile)
 	http.HandleFunc("/chmod/", chmodFile)
 	http.HandleFunc("/delete/", deleteFile)
@@ -71,25 +72,19 @@ func write(res http.ResponseWriter, req *http.Request) {
 	d1 := []byte("Hello Persistent World!\n")
 	err := ioutil.WriteFile(mountPointPath, d1, 0644)
 	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Writing \n"))
-		res.Write([]byte(err.Error()))
+		writeError(res, "Writing \n", err)
 		return
 	}
 
 	body, err := ioutil.ReadFile(mountPointPath)
 	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Reading \n"))
-		res.Write([]byte(err.Error()))
+		writeError(res, "Reading \n", err)
 		return
 	}
 
 	err = os.Remove(mountPointPath)
 	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Deleting \n"))
-		res.Write([]byte(err.Error()))
+		writeError(res, "Deleting \n", err)
 		return
 	}
 
@@ -98,15 +93,57 @@ func write(res http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func createFile(res http.ResponseWriter, req *http.Request) {
+func dataLoad(res http.ResponseWriter, req *http.Request) {
+	// this method will read and write data to a single file for 4 seconds, then clean up.
+	mountPointPath := getPath() + "/poraload-" + randomString(10)
+
+	d1 := []byte("Hello Persistent World!\n")
+	err := ioutil.WriteFile(mountPointPath, d1, 0644)
+	if err != nil {
+		writeError(res, "Writing \n", err)
+		return
+	}
+
+	var totalIO int
+	for startTime := time.Now(); time.Since(startTime) < 4 * time.Second; {
+		d2 := []byte(randomString(1048576))
+		err := ioutil.WriteFile(mountPointPath, d2, 0644)
+		if err != nil {
+			writeError(res, "Writing Load\n", err)
+			return
+		}
+		body, err := ioutil.ReadFile(mountPointPath)
+		if err != nil {
+			writeError(res, "Reading Load\n", err)
+			return
+		}
+		if string(body) != string(d2) {
+			writeError(res, "Data Mismatch\n", err)
+			return
+		}
+		totalIO = totalIO + 1
+	}
+
+	err = os.Remove(mountPointPath)
+	if err != nil {
+		writeError(res, "Deleting\n", err)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+	body := fmt.Sprintf("%d MiB written\n", totalIO)
+	res.Write([]byte(body))
+	return
+}
+
+func createFile(res http.ResponseWriter, _ *http.Request) {
 	fileName := "pora" + randomString(10)
 	mountPointPath := filepath.Join(getPath(), fileName)
 
 	d1 := []byte("Hello Persistent World!\n")
 	err := ioutil.WriteFile(mountPointPath, d1, 0644)
 	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(err.Error()))
+		writeError(res, "Writing \n", err)
 		return
 	}
 
@@ -193,4 +230,10 @@ func randomString(n int) string {
 		b[i] = runes[rand.Intn(len(runes))]
 	}
 	return string(b)
+}
+
+func writeError(res http.ResponseWriter, msg string, err error) {
+	res.WriteHeader(http.StatusInternalServerError)
+	res.Write([]byte(msg))
+	res.Write([]byte(err.Error()))
 }
