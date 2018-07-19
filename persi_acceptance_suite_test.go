@@ -73,10 +73,9 @@ func TestPersiAcceptance(t *testing.T) {
 		patsTestEnvironment = helpers.NewEnvironment(patsTestContext)
 
 		patsTestEnvironment.Setup()
-		isolationSegmentName := os.Getenv("TEST_ISOLATION_SEGMENT")
-		if isolationSegmentName != "" {
-			Eventually(cf.Cf("create-isolation-segment", isolationSegmentName), DEFAULT_TIMEOUT).Should(Exit(0))
-			Eventually(cf.Cf("set-org-default-isolation-segment", patsTestContext.RegularUserContext().Org, isolationSegmentName), DEFAULT_TIMEOUT).Should(Exit(0))
+		if pConfig.IsolationSegment != "" {
+			Eventually(cf.Cf("create-isolation-segment", pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
+			Eventually(cf.Cf("set-org-default-isolation-segment", patsTestContext.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
 		}
 	})
 
@@ -147,6 +146,7 @@ type patsConfig struct {
 	CreateBogusConfig string `json:"create_bogus_config"`
 	BindConfig        string `json:"bind_config"`
 	BindBogusConfig   string `json:"bind_bogus_config"`
+	IsolationSegment  string `json:"isolation_segment"`
 }
 
 func getPatsSpecificConfig() error {
