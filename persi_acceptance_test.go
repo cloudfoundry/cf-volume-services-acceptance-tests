@@ -228,7 +228,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 					})
 
-					It("it should be have the app", func() {
+					It("it should have the app", func() {
 						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
 							Expect(marketplaceItems).To(Exit(0))
@@ -305,7 +305,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(status).To(Equal(http.StatusOK))
 							})
 
-
 							if os.Getenv("TEST_MULTI_CELL") == "true" {
 								It("should keep the data across multiple stops and starts", func() {
 									fname, status, err := get(appURL + "/create")
@@ -314,7 +313,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(status).To(Equal(http.StatusOK))
 
 									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-										for i:=0; i < 20; i++ {
+										for i := 0; i < 20; i++ {
 											stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
 											Expect(stopResponse).To(Exit(0))
 											startResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
@@ -543,6 +542,32 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 								})
 							}
+						})
+					})
+
+					Context("when bind config is not allowed", func() {
+						if pConfig.DisallowedLdapBindConfig == "" {
+							Skip("not testing LDAP config")
+						}
+
+						AfterEach(func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
+								cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+								cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
+							})
+						})
+
+						It("fails to start", func() {
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedLdapBindConfig).Wait(DEFAULT_TIMEOUT)
+								Expect(bindResponse).To(Exit(0))
+							})
+
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
+								Expect(bindResponse).NotTo(Exit(0))
+							})
 						})
 					})
 				})

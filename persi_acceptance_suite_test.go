@@ -137,16 +137,17 @@ func defaults(config *helpers.Config) {
 }
 
 type patsConfig struct {
-	ServiceName       string `json:"service_name"`
-	PlanName          string `json:"plan_name"`
-	BrokerUrl         string `json:"broker_url"`
-	BrokerUser        string `json:"broker_user"`
-	BrokerPassword    string `json:"broker_password"`
-	CreateConfig      string `json:"create_config"`
-	CreateBogusConfig string `json:"create_bogus_config"`
-	BindConfig        string `json:"bind_config"`
-	BindBogusConfig   string `json:"bind_bogus_config"`
-	IsolationSegment  string `json:"isolation_segment"`
+	ServiceName              string `json:"service_name"`
+	PlanName                 string `json:"plan_name"`
+	BrokerUrl                string `json:"broker_url"`
+	BrokerUser               string `json:"broker_user"`
+	BrokerPassword           string `json:"broker_password"`
+	CreateConfig             string `json:"create_config"`
+	CreateBogusConfig        string `json:"create_bogus_config"`
+	BindConfig               string `json:"bind_config"`
+	BindBogusConfig          string `json:"bind_bogus_config"`
+	IsolationSegment         string `json:"isolation_segment"`
+	DisallowedLdapBindConfig string `json:"disallowed_ldap_bind_config"`
 }
 
 func getPatsSpecificConfig() error {
