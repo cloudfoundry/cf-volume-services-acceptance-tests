@@ -312,6 +312,19 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(fname).To(ContainSubstring("pora"))
 									Expect(status).To(Equal(http.StatusOK))
 
+									// start a bunch of simultaneous requests to do file io
+									var wg sync.WaitGroup
+									var done bool
+									wg.Add(10)
+									for i := 0; i < 10 i++ {
+										go func() {
+											for ; !done ; {
+												get(appURL + "/loadtest")
+											}
+											wg.Done()
+										}()
+									}
+
 									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 										for i := 0; i < 20; i++ {
 											stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
@@ -320,6 +333,10 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											Expect(startResponse).To(Exit(0))
 										}
 									})
+
+									// signal our background load to stop and then wait for it
+									done = true
+									wg.Wait()
 
 									body, status, err := get(appURL + "/read/" + fname)
 									Expect(err).NotTo(HaveOccurred())
