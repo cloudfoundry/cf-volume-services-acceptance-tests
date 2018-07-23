@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"strconv"
 
@@ -316,7 +317,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									var wg sync.WaitGroup
 									var done bool
 									wg.Add(10)
-									for i := 0; i < 10 i++ {
+									for i := 0; i < 10; i++ {
 										go func() {
 											for ; !done ; {
 												get(appURL + "/loadtest")
