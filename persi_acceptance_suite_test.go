@@ -76,6 +76,7 @@ func TestPersiAcceptance(t *testing.T) {
 		if pConfig.IsolationSegment != "" {
 			cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				Eventually(cf.Cf("create-isolation-segment", pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("enable-org-isolation", patsTestContext.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
 				Eventually(cf.Cf("set-org-default-isolation-segment", patsTestContext.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
 			})
 		}
