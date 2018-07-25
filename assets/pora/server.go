@@ -19,6 +19,7 @@ func main() {
 	http.HandleFunc("/write", write)
 	http.HandleFunc("/create", createFile)
 	http.HandleFunc("/loadtest", dataLoad)
+	http.HandleFunc("/loadtestcleanup", dataLoadCleanup)
 	http.HandleFunc("/read/", readFile)
 	http.HandleFunc("/chmod/", chmodFile)
 	http.HandleFunc("/delete/", deleteFile)
@@ -132,6 +133,28 @@ func dataLoad(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusOK)
 	body := fmt.Sprintf("%d MiB written\n", totalIO)
+	res.Write([]byte(body))
+	return
+}
+
+func dataLoadCleanup(res http.ResponseWriter, req *http.Request) {
+	// this method will clean up any files that couldn't be deleted during load testing due to interruptions.
+	mountPointPath := getPath() + "/poraload-*"
+
+	files, err := filepath.Glob(mountPointPath)
+	if err != nil {
+		writeError(res, "Unable to find files \n", err)
+		return
+	}
+	for _, f := range files {
+		if err := os.Remove(f); err != nil {
+			writeError(res, "Unable to remove " + f + " \n", err)
+			return
+		}
+	}
+
+	res.WriteHeader(http.StatusOK)
+	body := fmt.Sprintf("%d Files Removed\n", len(files))
 	res.Write([]byte(body))
 	return
 }

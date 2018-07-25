@@ -348,6 +348,10 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(err).NotTo(HaveOccurred())
 									Expect(body2).To(ContainSubstring(fname))
 									Expect(status).To(Equal(http.StatusOK))
+
+									// clean up any load test files that got left behind on the mount due to apps stopping
+									// and starting
+									get(appURL + "/loadtestcleanup")
 								})
 
 								Context("when the app is scaled across cells", func() {
