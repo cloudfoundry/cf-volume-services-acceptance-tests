@@ -49,6 +49,10 @@ func TestPersiAcceptance(t *testing.T) {
 	componentName := "PATS Suite"
 	rs := []Reporter{}
 
+	maxParallelSetup := 5
+	setupGuard := make(chan struct{}, maxParallelSetup)
+
+
 	SynchronizedBeforeSuite(func() []byte {
 		patsSuiteContext = helpers.NewContext(cfConfig)
 
@@ -69,6 +73,10 @@ func TestPersiAcceptance(t *testing.T) {
 
 		return nil
 	}, func(_ []byte) {
+		// rate limit spec setup to do no more than 5 creates in parallel, so that CF doesn't get upset and time out on UAA calls
+		setupGuard <- struct{}{} // would block if guard channel is already filled
+		defer func() {<-setupGuard}()
+
 		patsTestContext = helpers.NewContext(cfConfig)
 		patsTestEnvironment = helpers.NewEnvironment(patsTestContext)
 
