@@ -3,16 +3,20 @@ package persi_acceptance_tests_test
 import (
 	"encoding/json"
 	"os"
+	"io/ioutil"
+	"strconv"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/onsi/ginkgo/config"
 
 	"testing"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
+  "github.com/zbiljic/go-filelock"
 
 	"os/exec"
 	"time"
@@ -50,8 +54,10 @@ func TestPersiAcceptance(t *testing.T) {
 	rs := []Reporter{}
 
 	maxParallelSetup := 5
-	setupGuard := make(chan struct{}, maxParallelSetup)
-
+	for i:=0; i < maxParallelSetup; i++ {
+		d1 := []byte("this is a lock file")
+		ioutil.WriteFile("pats-setup-lock-" + strconv.Itoa(i), d1, 0644)
+	}
 
 	SynchronizedBeforeSuite(func() []byte {
 		patsSuiteContext = helpers.NewContext(cfConfig)
@@ -73,9 +79,11 @@ func TestPersiAcceptance(t *testing.T) {
 
 		return nil
 	}, func(_ []byte) {
-		// rate limit spec setup to do no more than 5 creates in parallel, so that CF doesn't get upset and time out on UAA calls
-		setupGuard <- struct{}{} // would block if guard channel is already filled
-		defer func() {<-setupGuard}()
+		// rate limit spec setup to do no more than maxParallelSetup creates in parallel, so that CF doesn't get upset and time out on UAA calls
+		fl, err := filelock.New("pats-setup-lock-" + strconv.Itoa(config.GinkgoConfig.ParallelNode % maxParallelSetup))
+		Expect(err).ToNot(HaveOccurred())
+		fl.Must().Lock()
+		defer fl.Must().Unlock()
 
 		patsTestContext = helpers.NewContext(cfConfig)
 		patsTestEnvironment = helpers.NewEnvironment(patsTestContext)
