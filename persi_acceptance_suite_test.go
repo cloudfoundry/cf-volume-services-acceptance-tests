@@ -5,6 +5,7 @@ import (
 	"os"
 	"io/ioutil"
 	"strconv"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,10 +54,16 @@ func TestPersiAcceptance(t *testing.T) {
 	componentName := "PATS Suite"
 	rs := []Reporter{}
 
+	lockFilePath, err := ioutil.TempDir("", "pats-setup-lock")
+	if err != nil {
+		panic(err)
+	}
+	lockFilePath = filepath.Join(lockFilePath, "lock-")
+
 	maxParallelSetup := 5
 	for i:=0; i < maxParallelSetup; i++ {
 		d1 := []byte("this is a lock file")
-		ioutil.WriteFile("pats-setup-lock-" + strconv.Itoa(i), d1, 0644)
+		ioutil.WriteFile(lockFilePath + strconv.Itoa(i), d1, 0644)
 	}
 
 	SynchronizedBeforeSuite(func() []byte {
@@ -80,7 +87,7 @@ func TestPersiAcceptance(t *testing.T) {
 		return nil
 	}, func(_ []byte) {
 		// rate limit spec setup to do no more than maxParallelSetup creates in parallel, so that CF doesn't get upset and time out on UAA calls
-		fl, err := filelock.New("pats-setup-lock-" + strconv.Itoa(config.GinkgoConfig.ParallelNode % maxParallelSetup))
+		fl, err := filelock.New(lockFilePath + strconv.Itoa(config.GinkgoConfig.ParallelNode % maxParallelSetup))
 		Expect(err).ToNot(HaveOccurred())
 		fl.Must().Lock()
 		defer fl.Must().Unlock()
