@@ -2,25 +2,24 @@ package persi_acceptance_tests_test
 
 import (
 	"encoding/json"
-	"os"
 	"io/ioutil"
-	"strconv"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
+	"testing"
+	"time"
+
+	"github.com/zbiljic/go-filelock"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
-	"github.com/onsi/ginkgo/config"
-
-	"testing"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
-  "github.com/zbiljic/go-filelock"
-
-	"os/exec"
-	"time"
 )
 
 var (
@@ -77,9 +76,9 @@ func TestPersiAcceptance(t *testing.T) {
 		Expect(err).ToNot(HaveOccurred())
 		lockFilePath = filepath.Join(lockFilePath, "lock-")
 
-		for i:=0; i < maxParallelSetup; i++ {
+		for i := 0; i < maxParallelSetup; i++ {
 			d1 := []byte("this is a lock file")
-			ioutil.WriteFile(lockFilePath + strconv.Itoa(i), d1, 0644)
+			ioutil.WriteFile(lockFilePath+strconv.Itoa(i), d1, 0644)
 		}
 
 		return []byte(lockFilePath)
@@ -87,7 +86,7 @@ func TestPersiAcceptance(t *testing.T) {
 		lockFilePath := string(path)
 
 		// rate limit spec setup to do no more than maxParallelSetup creates in parallel, so that CF doesn't get upset and time out on UAA calls
-		fl, err := filelock.New(lockFilePath + strconv.Itoa(config.GinkgoConfig.ParallelNode % maxParallelSetup))
+		fl, err := filelock.New(lockFilePath + strconv.Itoa(config.GinkgoConfig.ParallelNode%maxParallelSetup))
 		Expect(err).ToNot(HaveOccurred())
 		fl.Must().Lock()
 		defer fl.Must().Unlock()
@@ -174,6 +173,7 @@ type patsConfig struct {
 	BindBogusConfig          string `json:"bind_bogus_config"`
 	IsolationSegment         string `json:"isolation_segment"`
 	DisallowedLdapBindConfig string `json:"disallowed_ldap_bind_config"`
+	MissingGIDBindConfig     string `json:"missing_gid_bind_config"`
 }
 
 func getPatsSpecificConfig() error {

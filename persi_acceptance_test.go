@@ -319,7 +319,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									wg.Add(10)
 									for i := 0; i < 10; i++ {
 										go func() {
-											for ; !done ; {
+											for !done {
 												get(appURL + "/loadtest")
 											}
 											wg.Done()
@@ -567,8 +567,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 					})
 
-					Context("when bind config is not allowed", func() {
-
+					Context("with bind config", func() {
 						AfterEach(func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
@@ -577,7 +576,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 						})
 
-						It("fails to start", func() {
+						It("fails to start if bind config is not allowed", func() {
 							if pConfig.DisallowedLdapBindConfig == "" {
 								Skip("not testing LDAP config")
 							}
@@ -590,6 +589,22 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
 								Expect(bindResponse).NotTo(Exit(0))
+							})
+						})
+
+						It("starts successfully if bind config is missing GID", func() {
+							if pConfig.MissingGIDBindConfig == "" {
+								Skip("not testing missing GID config")
+							}
+
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.MissingGIDBindConfig).Wait(DEFAULT_TIMEOUT)
+								Expect(bindResponse).To(Exit(0))
+							})
+
+							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
+								Expect(bindResponse).To(Exit(0))
 							})
 						})
 					})
