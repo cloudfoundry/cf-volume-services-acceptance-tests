@@ -593,12 +593,12 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 
 						It("starts successfully if bind config is missing GID", func() {
-							if pConfig.MissingGIDBindConfig == "" {
-								Skip("not testing missing GID config")
+							if pConfig.MissingGIDLdapBindConfig == "" {
+								Skip("not testing missing GID LDAP config")
 							}
 
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.MissingGIDBindConfig).Wait(DEFAULT_TIMEOUT)
+								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.MissingGIDLdapBindConfig).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).To(Exit(0))
 							})
 
