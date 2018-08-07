@@ -592,7 +592,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 						})
 
-						It("starts successfully if bind config is missing GID", func() {
+						It("starts successfully if bind config references LDAP user that missing GID", func() {
 							if pConfig.MissingGIDLdapBindConfig == "" {
 								Skip("not testing missing GID LDAP config")
 							}
