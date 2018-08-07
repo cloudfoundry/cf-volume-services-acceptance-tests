@@ -173,7 +173,6 @@ type patsConfig struct {
 	BindBogusConfig          string `json:"bind_bogus_config"`
 	IsolationSegment         string `json:"isolation_segment"`
 	DisallowedLdapBindConfig string `json:"disallowed_ldap_bind_config"`
-	MissingGIDLdapBindConfig string `json:"missing_gid_ldap_bind_config"`
 }
 
 func getPatsSpecificConfig() error {
