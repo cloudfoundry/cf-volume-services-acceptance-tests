@@ -196,7 +196,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 						It("should see errors in cf logs", func() {
 							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								Eventually(cf.Cf("logs", bogusAppName, "--recent").Wait(DEFAULT_TIMEOUT)).Should(Say("Failed to mount nfs share"))
+								Eventually(cf.Cf("logs", bogusAppName, "--recent").Wait(DEFAULT_TIMEOUT)).Should(Say("failed to mount volume"))
 							})
 						})
 					})
