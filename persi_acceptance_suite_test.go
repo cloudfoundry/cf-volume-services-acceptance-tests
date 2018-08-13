@@ -49,7 +49,12 @@ func TestPersiAcceptance(t *testing.T) {
 		panic(err)
 	}
 
-	brokerName = pConfig.ServiceName + "-broker"
+	serviceBroker := &broker{
+		Name:     pConfig.ServiceName + "-broker",
+		User:     pConfig.BrokerUser,
+		Password: pConfig.BrokerPassword,
+		URL:      pConfig.BrokerUrl,
+	}
 
 	componentName := "PATS Suite"
 	rs := []Reporter{}
@@ -60,14 +65,14 @@ func TestPersiAcceptance(t *testing.T) {
 
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
-			deleteBrokerByURL(pConfig.BrokerUrl)
+			serviceBroker.Delete()
 
 			if os.Getenv("TEST_DOCKER_PORA") == "true" {
 				Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
 		})
 
-		createBroker(pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl)
+		serviceBroker.Create()
 
 		lockFilePath, err := ioutil.TempDir("", "pats-setup-lock")
 		Expect(err).ToNot(HaveOccurred())
@@ -111,14 +116,11 @@ func TestPersiAcceptance(t *testing.T) {
 				Eventually(cf.Cf("disable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
 
-			if pConfig.BrokerUser != "" && pConfig.BrokerPassword != "" && pConfig.BrokerUrl != "" {
-				err := deleteBrokerByName(brokerName)
-				if err != nil {
-					cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
-					Fail("pats service broker could not be cleaned up.")
-				}
+			err := serviceBroker.Delete()
+			if err != nil {
+				cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
+				Fail("pats service broker could not be cleaned up.")
 			}
-
 		})
 		if patsAdminEnvironment != nil {
 			patsAdminEnvironment.Teardown()
@@ -131,48 +133,6 @@ func TestPersiAcceptance(t *testing.T) {
 	}
 
 	RunSpecsWithDefaultAndCustomReporters(t, componentName, rs)
-}
-
-func createBroker(brokerUser, brokerPassword, brokerUrl string) {
-	if brokerUser == "" && brokerPassword == "" && brokerUrl == "" {
-		return
-	}
-
-	cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-		createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
-		Expect(createServiceBroker).To(Exit(0))
-		Expect(createServiceBroker).To(Say(brokerName))
-	})
-}
-
-func deleteBrokerByName(name string) error {
-	session := cf.Cf("delete-service-broker", "-f", name).Wait(DEFAULT_TIMEOUT)
-	if session.ExitCode() != 0 {
-		return errors.New("failed-to-delete-service-broker")
-	}
-	return nil
-}
-
-func deleteBrokerByURL(brokerUrl string) {
-	serviceBrokers, err := exec.Command("cf", "curl", "/v2/service_brokers").Output()
-	Expect(err).NotTo(HaveOccurred())
-
-	var serviceBrokerResponse struct {
-		Resources []struct {
-			Entity struct {
-				BrokerUrl string `json:"broker_url"`
-				Name      string
-			}
-		}
-	}
-
-	Expect(json.Unmarshal(serviceBrokers, &serviceBrokerResponse)).To(Succeed())
-
-	for _, broker := range serviceBrokerResponse.Resources {
-		if broker.Entity.BrokerUrl == brokerUrl {
-			deleteBrokerByName(broker.Entity.Name)
-		}
-	}
 }
 
 func defaults(config *helpers.Config) {
@@ -212,4 +172,73 @@ func getPatsSpecificConfig() error {
 
 	pConfig = *config
 	return nil
+}
+
+type broker struct {
+	Name     string
+	User     string
+	Password string
+	URL      string
+}
+
+func (b *broker) Create() {
+	if !b.managedByPATs() {
+		// service broker was created outside of pats, e.g. in the errand
+		return
+	}
+
+	cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
+		Expect(createServiceBroker).To(Exit(0))
+		Expect(createServiceBroker).To(Say(brokerName))
+	})
+}
+
+func (b *broker) Delete() error {
+	if !b.managedByPATs() {
+		// service broker was created outside of pats, e.g. in the errand
+		return nil
+	}
+
+	if b.Name != "" {
+		session := cf.Cf("delete-service-broker", "-f", b.Name).Wait(DEFAULT_TIMEOUT)
+		if session.ExitCode() != 0 {
+			return errors.New("failed-to-delete-service-broker")
+		}
+		return nil
+	}
+
+	if b.URL != "" {
+		serviceBrokers, err := exec.Command("cf", "curl", "/v2/service_brokers").Output()
+		Expect(err).NotTo(HaveOccurred())
+
+		var serviceBrokerResponse struct {
+			Resources []struct {
+				Entity struct {
+					BrokerUrl string `json:"broker_url"`
+					Name      string
+				}
+			}
+		}
+
+		Expect(json.Unmarshal(serviceBrokers, &serviceBrokerResponse)).To(Succeed())
+
+		for _, broker := range serviceBrokerResponse.Resources {
+			if broker.Entity.BrokerUrl == b.URL {
+				session := cf.Cf("delete-service-broker", "-f", broker.Entity.Name).Wait(DEFAULT_TIMEOUT)
+				if session.ExitCode() != 0 {
+					return errors.New("failed-to-delete-service-broker")
+				}
+				return nil
+			}
+		}
+
+		return nil
+	}
+
+	return nil
+}
+
+func (b *broker) managedByPATs() bool {
+	return b.User != "" && b.Password != ""
 }
