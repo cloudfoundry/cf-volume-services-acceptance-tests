@@ -66,11 +66,13 @@ func TestPersiAcceptance(t *testing.T) {
 			}
 		})
 
-		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-			createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
-			Expect(createServiceBroker).To(Exit(0))
-			Expect(createServiceBroker).To(Say(brokerName))
-		})
+		if pConfig.BrokerUser != "" && pConfig.BrokerPassword != "" && pConfig.BrokerUrl != "" {
+			cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+				createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
+				Expect(createServiceBroker).To(Exit(0))
+				Expect(createServiceBroker).To(Say(brokerName))
+			})
+		}
 
 		lockFilePath, err := ioutil.TempDir("", "pats-setup-lock")
 		Expect(err).ToNot(HaveOccurred())
@@ -114,10 +116,12 @@ func TestPersiAcceptance(t *testing.T) {
 				Eventually(cf.Cf("disable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
 
-			session := cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
-			if session.ExitCode() != 0 {
-				cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
-				Fail("pats service broker could not be cleaned up.")
+			if pConfig.BrokerUser != "" && pConfig.BrokerPassword != "" && pConfig.BrokerUrl != "" {
+				session := cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
+				if session.ExitCode() != 0 {
+					cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
+					Fail("pats service broker could not be cleaned up.")
+				}
 			}
 		})
 		if patsAdminEnvironment != nil {
