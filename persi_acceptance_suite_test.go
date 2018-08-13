@@ -2,6 +2,7 @@ package persi_acceptance_tests_test
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -59,20 +60,14 @@ func TestPersiAcceptance(t *testing.T) {
 
 		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
-			deleteBroker(pConfig.BrokerUrl)
+			deleteBrokerByURL(pConfig.BrokerUrl)
 
 			if os.Getenv("TEST_DOCKER_PORA") == "true" {
 				Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
 		})
 
-		if pConfig.BrokerUser != "" && pConfig.BrokerPassword != "" && pConfig.BrokerUrl != "" {
-			cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-				createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
-				Expect(createServiceBroker).To(Exit(0))
-				Expect(createServiceBroker).To(Say(brokerName))
-			})
-		}
+		createBroker(pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl)
 
 		lockFilePath, err := ioutil.TempDir("", "pats-setup-lock")
 		Expect(err).ToNot(HaveOccurred())
@@ -117,12 +112,13 @@ func TestPersiAcceptance(t *testing.T) {
 			}
 
 			if pConfig.BrokerUser != "" && pConfig.BrokerPassword != "" && pConfig.BrokerUrl != "" {
-				session := cf.Cf("delete-service-broker", "-f", brokerName).Wait(DEFAULT_TIMEOUT)
-				if session.ExitCode() != 0 {
+				err := deleteBrokerByName(brokerName)
+				if err != nil {
 					cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
 					Fail("pats service broker could not be cleaned up.")
 				}
 			}
+
 		})
 		if patsAdminEnvironment != nil {
 			patsAdminEnvironment.Teardown()
@@ -137,7 +133,27 @@ func TestPersiAcceptance(t *testing.T) {
 	RunSpecsWithDefaultAndCustomReporters(t, componentName, rs)
 }
 
-func deleteBroker(brokerUrl string) {
+func createBroker(brokerUser, brokerPassword, brokerUrl string) {
+	if brokerUser == "" && brokerPassword == "" && brokerUrl == "" {
+		return
+	}
+
+	cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
+		Expect(createServiceBroker).To(Exit(0))
+		Expect(createServiceBroker).To(Say(brokerName))
+	})
+}
+
+func deleteBrokerByName(name string) error {
+	session := cf.Cf("delete-service-broker", "-f", name).Wait(DEFAULT_TIMEOUT)
+	if session.ExitCode() != 0 {
+		return errors.New("failed-to-delete-service-broker")
+	}
+	return nil
+}
+
+func deleteBrokerByURL(brokerUrl string) {
 	serviceBrokers, err := exec.Command("cf", "curl", "/v2/service_brokers").Output()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -154,7 +170,7 @@ func deleteBroker(brokerUrl string) {
 
 	for _, broker := range serviceBrokerResponse.Resources {
 		if broker.Entity.BrokerUrl == brokerUrl {
-			cf.Cf("delete-service-broker", "-f", broker.Entity.Name).Wait(DEFAULT_TIMEOUT)
+			deleteBrokerByName(broker.Entity.Name)
 		}
 	}
 }
