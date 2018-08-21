@@ -23,6 +23,7 @@ func main() {
 	http.HandleFunc("/read/", readFile)
 	http.HandleFunc("/chmod/", chmodFile)
 	http.HandleFunc("/delete/", deleteFile)
+	http.HandleFunc("/mkdir", mkdirForBackgroundLoad)
 	fmt.Println("listening...")
 
 	ports := os.Getenv("PORT")
@@ -36,6 +37,8 @@ func main() {
 			errCh <- http.ListenAndServe(":"+port, nil)
 		}(port)
 	}
+
+	go backgroundLoad()
 
 	err := <-errCh
 	if err != nil {
@@ -137,6 +140,39 @@ func dataLoad(res http.ResponseWriter, req *http.Request) {
 	return
 }
 
+func backgroundLoad() {
+	// this method will run forever reading and writing and cleaning up data files
+	dirName := "pora-background-load"
+	dirPath := filepath.Join(getPath(), dirName)
+
+	for ; true; {
+		if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+			fmt.Println("background load directory doesn't exist...waiting")
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		filePath := filepath.Join(dirPath, "poraload-" + os.Getenv("INSTANCE_INDEX"))
+
+		d2 := []byte(randomString(1048576))
+		err := ioutil.WriteFile(filePath, d2, 0644)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		body, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if string(body) != string(d2) {
+			fmt.Println("Data Mismatch!")
+			return
+		}
+		os.Remove(filePath)
+	}
+}
+
 func dataLoadCleanup(res http.ResponseWriter, req *http.Request) {
 	// this method will clean up any files that couldn't be deleted during load testing due to interruptions.
 	mountPointPath := getPath() + "/poraload-*"
@@ -172,6 +208,22 @@ func createFile(res http.ResponseWriter, _ *http.Request) {
 
 	res.WriteHeader(http.StatusOK)
 	res.Write([]byte(fileName))
+	return
+}
+
+func mkdirForBackgroundLoad(res http.ResponseWriter, _ *http.Request) {
+	dirName := "pora-background-load"
+	dirPath := filepath.Join(getPath(), dirName)
+
+
+	err := os.Mkdir(dirPath, 0777)
+	if err != nil {
+		writeError(res, "Writing \n", err)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+	res.Write([]byte(dirPath))
 	return
 }
 
