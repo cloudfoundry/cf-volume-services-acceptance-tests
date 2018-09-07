@@ -4,13 +4,13 @@ while [ 1 -ne 0 ]
 do
   echo "##########################################################"
   echo "scaling up!"
-  cf scale $1 -i 4
-  sleep 6
+  cf scale $1 -i 8
+  sleep 8
   if [ -n "$(cf logs $1 --recent | grep waiting)" ]; then exit 0; fi
   cf app $1
   echo "##########################################################"
   echo "scaling down!"
   cf scale $1 -i 1
-  sleep 3
+  sleep 4
   cf app $1
 done
