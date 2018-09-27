@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const backgroundLoadDirName = "pora-background-load"
+
 func main() {
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/env", env)
@@ -23,7 +25,7 @@ func main() {
 	http.HandleFunc("/read/", readFile)
 	http.HandleFunc("/chmod/", chmodFile)
 	http.HandleFunc("/delete/", deleteFile)
-	http.HandleFunc("/mkdir", mkdirForBackgroundLoad)
+	http.HandleFunc("/mkdir-for-background-load", mkdirForBackgroundLoad)
 	fmt.Println("listening...")
 
 	ports := os.Getenv("PORT")
@@ -38,7 +40,10 @@ func main() {
 		}(port)
 	}
 
-	go backgroundLoad()
+	if runBackgroundLoad := os.Getenv("RUN_BACKGROUND_LOAD_THREAD"); runBackgroundLoad != "" {
+		fmt.Println("starting background load thread...")
+		go backgroundLoad()
+	}
 
 	err := <-errCh
 	if err != nil {
@@ -109,7 +114,7 @@ func dataLoad(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var totalIO int
-	for startTime := time.Now(); time.Since(startTime) < 4 * time.Second; {
+	for startTime := time.Now(); time.Since(startTime) < 4*time.Second; {
 		d2 := []byte(randomString(1048576))
 		err := ioutil.WriteFile(mountPointPath, d2, 0644)
 		if err != nil {
@@ -142,17 +147,16 @@ func dataLoad(res http.ResponseWriter, req *http.Request) {
 
 func backgroundLoad() {
 	// this method will run forever reading and writing and cleaning up data files
-	dirName := "pora-background-load"
-	dirPath := filepath.Join(getPath(), dirName)
+	dirPath := filepath.Join(getPath(), backgroundLoadDirName)
 
-	for ; true; {
+	for true {
 		if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-			fmt.Println("background load directory doesn't exist...waiting")
+			fmt.Println("background load directory doesn't exist... waiting")
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		filePath := filepath.Join(dirPath, "poraload-" + os.Getenv("INSTANCE_INDEX"))
+		filePath := filepath.Join(dirPath, "poraload-"+os.Getenv("INSTANCE_INDEX"))
 
 		d2 := []byte(randomString(1048576))
 		err := ioutil.WriteFile(filePath, d2, 0644)
@@ -160,15 +164,18 @@ func backgroundLoad() {
 			fmt.Println(err)
 			return
 		}
+
 		body, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+
 		if string(body) != string(d2) {
 			fmt.Println("Data Mismatch!")
 			return
 		}
+
 		os.Remove(filePath)
 	}
 }
@@ -184,7 +191,7 @@ func dataLoadCleanup(res http.ResponseWriter, req *http.Request) {
 	}
 	for _, f := range files {
 		if err := os.Remove(f); err != nil {
-			writeError(res, "Unable to remove " + f + " \n", err)
+			writeError(res, "Unable to remove "+f+" \n", err)
 			return
 		}
 	}
@@ -212,19 +219,16 @@ func createFile(res http.ResponseWriter, _ *http.Request) {
 }
 
 func mkdirForBackgroundLoad(res http.ResponseWriter, _ *http.Request) {
-	dirName := "pora-background-load"
-	dirPath := filepath.Join(getPath(), dirName)
+	dirPath := filepath.Join(getPath(), backgroundLoadDirName)
 
-
-	err := os.Mkdir(dirPath, 0777)
+	err := os.MkdirAll(dirPath, 0777)
 	if err != nil {
-		writeError(res, "Writing \n", err)
+		writeError(res, "Error creating directory", err)
 		return
 	}
 
 	res.WriteHeader(http.StatusOK)
 	res.Write([]byte(dirPath))
-	return
 }
 
 func readFile(res http.ResponseWriter, req *http.Request) {
