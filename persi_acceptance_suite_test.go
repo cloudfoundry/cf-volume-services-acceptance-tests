@@ -149,6 +149,8 @@ type patsConfig struct {
 	BrokerPassword           string `json:"broker_password"`
 	CreateConfig             string `json:"create_config"`
 	CreateBogusConfig        string `json:"create_bogus_config"`
+	CreateLazyUnmountConfig  string `json:"create_lazy_unmount_config"`
+	LazyUnmountVmInstance    string `json:"lazy_unmount_vm_instance"`
 	BindConfig               string `json:"bind_config"`
 	BindBogusConfig          string `json:"bind_bogus_config"`
 	IsolationSegment         string `json:"isolation_segment"`

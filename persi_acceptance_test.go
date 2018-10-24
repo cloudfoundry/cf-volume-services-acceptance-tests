@@ -1,16 +1,16 @@
 package persi_acceptance_tests_test
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
-
-	"strconv"
-
-	"bytes"
-	"fmt"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
@@ -95,12 +95,23 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 			Context("given a service instance", func() {
 				BeforeEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-						var createService, createBogusService *Session
-						if pConfig.CreateConfig == "" {
+						var (
+							createService, createBogusService *Session
+							createConfig                      string
+						)
+
+						if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
+							createConfig = pConfig.CreateLazyUnmountConfig
+						} else {
+							createConfig = pConfig.CreateConfig
+						}
+
+						if createConfig == "" {
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						} else {
-							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", pConfig.CreateConfig).Wait(DEFAULT_TIMEOUT)
+							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", createConfig).Wait(DEFAULT_TIMEOUT)
 						}
+						Expect(createService).To(Exit(0))
 
 						if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
 							if pConfig.CreateBogusConfig == "" {
@@ -110,7 +121,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							}
 							Expect(createBogusService).To(Exit(0))
 						}
-						Expect(createService).To(Exit(0))
 					})
 
 					// wait for async service to finish
@@ -305,6 +315,82 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Expect(body).To(ContainSubstring("Hello Persistent World"))
 								Expect(status).To(Equal(http.StatusOK))
 							})
+
+							if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
+								Context("when the nfs server becomes unavailable", func() {
+									var cellId, instanceId string
+
+									BeforeEach(func() {
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											cellInstanceLine := "\\[CELL/0].*Cell (.*) successfully created container for instance (.*)"
+											re, err := regexp.Compile(cellInstanceLine)
+											Expect(err).NotTo(HaveOccurred())
+
+											var cfOut *Buffer
+											Eventually(func() *Buffer {
+												session := cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
+												cfOut = session.Out
+												return cfOut
+											}).Should(Say(cellInstanceLine))
+
+											matches := re.FindSubmatch(cfOut.Contents())
+											Expect(matches).To(HaveLen(3))
+
+											cellId = string(matches[1])
+											instanceId = string(matches[2])
+										})
+										Expect(cellId).NotTo(BeEmpty())
+										Expect(instanceId).NotTo(BeEmpty())
+
+										By("Checking that the mounts are present (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
+										cmd := exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
+										Expect(cmdRunner(cmd)).To(Equal(0))
+									})
+
+									It("should unmount cleanly", func() {
+										By("Stopping the nfs test server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit stop nfstestserver)")
+										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit stop nfstestserver")
+										Expect(cmdRunner(cmd)).To(Equal(0))
+
+										By("Checking that the nfs test server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep \"not monitored\")")
+										cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep \"not monitored\"")
+										Expect(cmdRunner(cmd)).To(Equal(0))
+
+										// curl the write endpoint (will block)
+										By("Curling the /write endpoint")
+										block := make(chan bool)
+										go func(block chan bool) {
+											get(appURL + "/write")
+											block <- true
+										}(block)
+										Consistently(block, 2).ShouldNot(Receive())
+
+										By("Stopping the app")
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+											Expect(stopResponse).To(Exit(0))
+										})
+
+										By("Waiting for the container to be detroyed (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
+										Eventually(func() int {
+											cmd = exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
+											return cmdRunner(cmd)
+										}, 30).Should(Equal(1))
+									})
+
+									AfterEach(func() {
+										By("Reastarting the nfs test server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start nfstestserver)")
+										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit start nfstestserver")
+										Expect(cmdRunner(cmd)).To(Equal(0))
+
+										By("Checking that the nfs test server is running (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep running)")
+										Eventually(func() int {
+											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep running")
+											return cmdRunner(cmd)
+										}, 30).Should(Equal(0))
+									})
+								})
+							}
 
 							if os.Getenv("TEST_MULTI_CELL") == "true" {
 								It("should keep the data across multiple stops and starts", func() {
@@ -519,13 +605,11 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										var (
 											body    string
 											app2URL string
-											status  int
-											err     error
 										)
 										BeforeEach(func() {
 											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-											body, status, err = get(app2URL + "/create")
+											body, _, _ = get(app2URL + "/create")
 										})
 
 										It("should fail to write the file", func() {
@@ -618,4 +702,11 @@ func get(uri string) (body string, status int, err error) {
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	return string(bodyBytes[:]), response.StatusCode, err
+}
+
+func cmdRunner(cmd *exec.Cmd) int {
+	session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(session, 10).Should(Exit())
+	return session.ExitCode()
 }
