@@ -21,8 +21,9 @@ import (
 
 var _ = Describe("Cloud Foundry Persistence", func() {
 	var (
-		appHost, appURL, appName, instanceName string
-		bogusAppName, bogusInstanceName        string
+		appHost, appURL, appName, instanceName      string
+		bogusAppName, bogusInstanceName             string
+		lazyUnmountAppName, lazyUnmountInstanceName string
 	)
 
 	BeforeEach(func() {
@@ -33,8 +34,10 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 		instanceName = cfConfig.NamePrefix + "-" + instanceName + parallelNode
 		bogusInstanceName = cfConfig.NamePrefix + "-bogus-" + instanceName + parallelNode
+		lazyUnmountInstanceName = cfConfig.NamePrefix + "-lazy-" + instanceName + parallelNode
 		appName = cfConfig.NamePrefix + "-" + appName + parallelNode
 		bogusAppName = cfConfig.NamePrefix + "-bogus-" + appName + parallelNode
+		lazyUnmountAppName = cfConfig.NamePrefix + "-lazy-" + appName + parallelNode
 
 		appHost = appName + "." + cfConfig.AppsDomain
 		appURL = "http://" + appHost
@@ -96,20 +99,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				BeforeEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						var (
-							createService, createBogusService *Session
-							createConfig                      string
+							createService, createBogusService, createLazyUnmountService *Session
 						)
 
-						if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-							createConfig = pConfig.CreateLazyUnmountConfig
-						} else {
-							createConfig = pConfig.CreateConfig
-						}
-
-						if createConfig == "" {
+						if pConfig.CreateConfig == "" {
 							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName).Wait(DEFAULT_TIMEOUT)
 						} else {
-							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", createConfig).Wait(DEFAULT_TIMEOUT)
+							createService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, instanceName, "-c", pConfig.CreateConfig).Wait(DEFAULT_TIMEOUT)
 						}
 						Expect(createService).To(Exit(0))
 
@@ -120,6 +116,15 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								createBogusService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, bogusInstanceName, "-c", pConfig.CreateBogusConfig).Wait(DEFAULT_TIMEOUT)
 							}
 							Expect(createBogusService).To(Exit(0))
+						}
+
+						if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
+							if pConfig.CreateLazyUnmountConfig == "" {
+								createLazyUnmountService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
+							} else {
+								createLazyUnmountService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, lazyUnmountInstanceName, "-c", pConfig.CreateLazyUnmountConfig).Wait(DEFAULT_TIMEOUT)
+							}
+							Expect(createLazyUnmountService).To(Exit(0))
 						}
 					})
 
@@ -137,13 +142,26 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							return serviceDetails
 						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
 					}
+
+					if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
+						Eventually(func() *Session {
+							serviceDetails := cf.Cf("service", lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
+							Expect(serviceDetails).To(Exit(0))
+							return serviceDetails
+						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
+					}
 				})
 
 				AfterEach(func() {
 					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
+
 						if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
 							cf.Cf("delete-service", bogusInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
+						}
+
+						if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
+							cf.Cf("delete-service", lazyUnmountInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
 						}
 					})
 
@@ -167,6 +185,18 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 						cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 							cf.Cf("purge-service-instance", bogusInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
+						})
+					}
+
+					if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
+						Eventually(func() *Session {
+							serviceDetails := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
+							Expect(serviceDetails).To(Exit(0))
+							return serviceDetails
+						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Not(Say(lazyUnmountInstanceName)))
+
+						cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+							cf.Cf("purge-service-instance", lazyUnmountInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
 						})
 					}
 				})
@@ -322,13 +352,31 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 									BeforeEach(func() {
 										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											appPath := os.Getenv("TEST_APPLICATION_PATH")
+											Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+
+											Eventually(cf.Cf("push", lazyUnmountAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+
+											if pConfig.BindBogusConfig == "" {
+												bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
+												Expect(bindResponse).To(Exit(0))
+											} else {
+												bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName, "-c", pConfig.BindBogusConfig).Wait(DEFAULT_TIMEOUT)
+												Expect(bindResponse).To(Exit(0))
+											}
+
+											startResponse := cf.Cf("start", lazyUnmountAppName).Wait(LONG_TIMEOUT)
+											Expect(startResponse).To(Exit(0))
+										})
+
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											cellInstanceLine := "\\[CELL/0].*Cell (.*) successfully created container for instance (.*)"
 											re, err := regexp.Compile(cellInstanceLine)
 											Expect(err).NotTo(HaveOccurred())
 
 											var cfOut *Buffer
 											Eventually(func() *Buffer {
-												session := cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
+												session := cf.Cf("logs", lazyUnmountAppName, "--recent").Wait(DEFAULT_TIMEOUT)
 												cfOut = session.Out
 												return cfOut
 											}).Should(Say(cellInstanceLine))
@@ -352,22 +400,24 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit stop nfstestserver")
 										Expect(cmdRunner(cmd)).To(Equal(0))
 
-										By("Checking that the nfs test server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep \"not monitored\")")
-										cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep \"not monitored\"")
-										Expect(cmdRunner(cmd)).To(Equal(0))
+										By("Checking that the nfs test server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /bin/pidof -s nfsd)")
+										Eventually(func() int {
+											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /bin/pidof -s nfsd")
+											return cmdRunner(cmd)
+										}, 30).Should(Equal(1))
 
 										// curl the write endpoint (will block)
-										By("Curling the /write endpoint")
+										By("Curling the /write endpoint in a goroutine")
 										block := make(chan bool)
-										go func(block chan bool) {
-											get(appURL + "/write")
+										go func() {
+											get("http://" + lazyUnmountAppName + "." + cfConfig.AppsDomain + "/write")
 											block <- true
-										}(block)
+										}()
 										Consistently(block, 2).ShouldNot(Receive())
 
 										By("Stopping the app")
 										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+											stopResponse := cf.Cf("stop", lazyUnmountAppName).Wait(DEFAULT_TIMEOUT)
 											Expect(stopResponse).To(Exit(0))
 										})
 
@@ -379,7 +429,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 
 									AfterEach(func() {
-										By("Reastarting the nfs test server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start nfstestserver)")
+										By("Restarting the nfs test server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start nfstestserver)")
 										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit start nfstestserver")
 										Expect(cmdRunner(cmd)).To(Equal(0))
 
@@ -388,6 +438,11 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep running")
 											return cmdRunner(cmd)
 										}, 30).Should(Equal(0))
+
+										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											cf.Cf("unbind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
+											cf.Cf("delete", lazyUnmountAppName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+										})
 									})
 								})
 							}
