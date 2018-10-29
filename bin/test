@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [[ ! -r "${CONFIG}" ]]; then
+  echo "FAIL: \$CONFIG must be set to the path of a PATs config JSON file"
+  exit 1
+fi
+
+if [[ -z "$(command -v ginkgo)" ]]; then
+  echo "FAIL: Missing ginkgo cli"
+  exit 1
+fi
+
+echo "Printing sanitized \$CONFIG:"
+grep -v -e password "${CONFIG}"
+
+export ASSETS_PATH=assets
+export TEST_APPLICATION_PATH=assets/pora
+
+echo "Using $(ginkgo version)"
+ginkgo "$@"
