@@ -56,6 +56,10 @@ func TestPersiAcceptance(t *testing.T) {
 		URL:      pConfig.BrokerUrl,
 	}
 
+	if serviceBroker.managedByPATs() {
+		brokerName = serviceBroker.Name
+	}
+
 	componentName := "PATS Suite"
 	rs := []Reporter{}
 	maxParallelSetup := 5
