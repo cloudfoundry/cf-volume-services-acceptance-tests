@@ -14,12 +14,7 @@ echo "Printing sanitized \$CONFIG:"
 grep -v -e password "${CONFIG}"
 
 export ASSETS_PATH=assets
-
-if [[ ${TEST_WINDOWS_CELL} == "true" ]]; then
-  export TEST_APPLICATION_PATH="${ASSETS_PATH}/pora-windows"
-else
-  export TEST_APPLICATION_PATH="${ASSETS_PATH}/pora"
-fi
+export TEST_APPLICATION_PATH=assets/pora
 
 echo "Using $(ginkgo version)"
 ginkgo "$@"
