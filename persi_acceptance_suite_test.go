@@ -49,9 +49,8 @@ func TestPersiAcceptance(t *testing.T) {
 		panic(err)
 	}
 
-	brokerName = pConfig.ServiceName + "-broker"
 	serviceBroker := &broker{
-		Name:     brokerName,
+		Name:     pConfig.ServiceName + "-broker",
 		User:     pConfig.BrokerUser,
 		Password: pConfig.BrokerPassword,
 		URL:      pConfig.BrokerUrl,
