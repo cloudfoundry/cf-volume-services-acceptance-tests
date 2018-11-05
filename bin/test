@@ -16,7 +16,9 @@ if [[ -z "$(command -v ginkgo)" ]]; then
 fi
 
 echo "Printing sanitized \$CONFIG:"
-grep -v -e password "${CONFIG}"
+set -e
+jq '.' "${CONFIG}" | grep -v -e password
+set +e
 
 export ASSETS_PATH=assets
 export TEST_APPLICATION_PATH="${ASSETS_PATH}/pora"
