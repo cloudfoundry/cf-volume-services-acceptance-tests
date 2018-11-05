@@ -347,7 +347,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 
 							if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-								Context("when the nfs server becomes unavailable", func() {
+								Context("when the remote server becomes unavailable", func() {
 									var cellId, instanceId string
 
 									BeforeEach(func() {
@@ -357,11 +357,11 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 											Eventually(cf.Cf("push", lazyUnmountAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 
-											if pConfig.BindBogusConfig == "" {
+											if pConfig.BindLazyUnmountConfig == "" {
 												bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
 												Expect(bindResponse).To(Exit(0))
 											} else {
-												bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName, "-c", pConfig.BindBogusConfig).Wait(DEFAULT_TIMEOUT)
+												bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName, "-c", pConfig.BindLazyUnmountConfig).Wait(DEFAULT_TIMEOUT)
 												Expect(bindResponse).To(Exit(0))
 											}
 
@@ -396,13 +396,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 
 									It("should unmount cleanly", func() {
-										By("Stopping the nfs test server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit stop nfstestserver)")
-										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit stop nfstestserver")
+										By("Stopping the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit stop " + pConfig.LazyUnmountRemoteServerJobName + ")")
+										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit stop "+pConfig.LazyUnmountRemoteServerJobName+"")
 										Expect(cmdRunner(cmd)).To(Equal(0))
 
-										By("Checking that the nfs test server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /bin/pidof -s nfsd)")
+										By("Checking that the remote server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /bin/pidof -s " + pConfig.LazyUnmountRemoteServerProcessName + ")")
 										Eventually(func() int {
-											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /bin/pidof -s nfsd")
+											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /bin/pidof -s "+pConfig.LazyUnmountRemoteServerProcessName)
 											return cmdRunner(cmd)
 										}, 30).Should(Equal(1))
 
@@ -429,13 +429,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 
 									AfterEach(func() {
-										By("Restarting the nfs test server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start nfstestserver)")
-										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit start nfstestserver")
+										By("Restarting the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start " + pConfig.LazyUnmountRemoteServerJobName + ")")
+										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit start "+pConfig.LazyUnmountRemoteServerJobName+"")
 										Expect(cmdRunner(cmd)).To(Equal(0))
 
-										By("Checking that the nfs test server is running (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep running)")
+										By("Checking that the remote server is running (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep " + pConfig.LazyUnmountRemoteServerJobName + " | grep running)")
 										Eventually(func() int {
-											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep nfstestserver | grep running")
+											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep "+pConfig.LazyUnmountRemoteServerJobName+" | grep running")
 											return cmdRunner(cmd)
 										}, 30).Should(Equal(0))
 

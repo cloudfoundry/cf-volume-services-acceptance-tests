@@ -146,19 +146,22 @@ func defaults(config *helpers.Config) {
 }
 
 type patsConfig struct {
-	ServiceName              string `json:"service_name"`
-	PlanName                 string `json:"plan_name"`
-	BrokerUrl                string `json:"broker_url"`
-	BrokerUser               string `json:"broker_user"`
-	BrokerPassword           string `json:"broker_password"`
-	CreateConfig             string `json:"create_config"`
-	CreateBogusConfig        string `json:"create_bogus_config"`
-	CreateLazyUnmountConfig  string `json:"create_lazy_unmount_config"`
-	LazyUnmountVmInstance    string `json:"lazy_unmount_vm_instance"`
-	BindConfig               string `json:"bind_config"`
-	BindBogusConfig          string `json:"bind_bogus_config"`
-	IsolationSegment         string `json:"isolation_segment"`
-	DisallowedLdapBindConfig string `json:"disallowed_ldap_bind_config"`
+	ServiceName                        string `json:"service_name"`
+	PlanName                           string `json:"plan_name"`
+	BrokerUrl                          string `json:"broker_url"`
+	BrokerUser                         string `json:"broker_user"`
+	BrokerPassword                     string `json:"broker_password"`
+	CreateConfig                       string `json:"create_config"`
+	CreateBogusConfig                  string `json:"create_bogus_config"`
+	CreateLazyUnmountConfig            string `json:"create_lazy_unmount_config"`
+	LazyUnmountVmInstance              string `json:"lazy_unmount_vm_instance"`
+	LazyUnmountRemoteServerJobName     string `json:"lazy_unmount_remote_server_job_name"`
+	LazyUnmountRemoteServerProcessName string `json:"lazy_unmount_remote_server_process_name"`
+	BindConfig                         string `json:"bind_config"`
+	BindBogusConfig                    string `json:"bind_bogus_config"`
+	BindLazyUnmountConfig              string `json:"bind_lazy_unmount_config"`
+	IsolationSegment                   string `json:"isolation_segment"`
+	DisallowedLdapBindConfig           string `json:"disallowed_ldap_bind_config"`
 }
 
 func getPatsSpecificConfig() error {
