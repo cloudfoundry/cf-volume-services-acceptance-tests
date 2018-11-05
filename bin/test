@@ -5,6 +5,11 @@ if [[ ! -r "${CONFIG}" ]]; then
   exit 1
 fi
 
+if [[ -z "$(command -v cf)" ]]; then
+  echo "FAIL: Missing cf cli"
+  exit 1
+fi
+
 if [[ -z "$(command -v ginkgo)" ]]; then
   echo "FAIL: Missing ginkgo cli"
   exit 1
