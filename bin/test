@@ -39,4 +39,5 @@ Using $(ginkgo version)
 
 EOT
 
+set -e
 ginkgo "$@"
