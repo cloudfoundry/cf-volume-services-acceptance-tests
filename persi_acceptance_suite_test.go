@@ -14,22 +14,22 @@ import (
 	"github.com/zbiljic/go-filelock"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
+	ginkgoconfig "github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
+	"github.com/cloudfoundry-incubator/cf-test-helpers/config"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
+	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
 )
 
 var (
-	cfConfig         helpers.Config
-	pConfig          patsConfig
-	patsSuiteContext helpers.SuiteContext
-
-	patsTestContext                           helpers.SuiteContext
-	patsTestEnvironment, patsAdminEnvironment *helpers.Environment
+	cfConfig       *config.Config
+	pConfig        patsConfig
+	patsSuiteSetup *workflowhelpers.ReproducibleTestSuiteSetup
+	patsTestSetup  *workflowhelpers.ReproducibleTestSuiteSetup
 
 	DEFAULT_TIMEOUT = 30 * time.Second
 	LONG_TIMEOUT    = 600 * time.Second
@@ -41,8 +41,8 @@ var (
 func TestPersiAcceptance(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	cfConfig = helpers.LoadConfig()
-	defaults(&cfConfig)
+	cfConfig = config.LoadConfig()
+	defaults(cfConfig)
 
 	err := getPatsSpecificConfig()
 	if err != nil {
@@ -65,9 +65,9 @@ func TestPersiAcceptance(t *testing.T) {
 	maxParallelSetup := 5
 
 	SynchronizedBeforeSuite(func() []byte {
-		patsSuiteContext = helpers.NewContext(cfConfig)
+		patsSuiteSetup = workflowhelpers.NewTestSuiteSetup(cfConfig)
 
-		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		workflowhelpers.AsUser(patsSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
 			serviceBroker.Delete()
 
@@ -92,30 +92,29 @@ func TestPersiAcceptance(t *testing.T) {
 		lockFilePath := string(path)
 
 		// rate limit spec setup to do no more than maxParallelSetup creates in parallel, so that CF doesn't get upset and time out on UAA calls
-		fl, err := filelock.New(lockFilePath + strconv.Itoa(config.GinkgoConfig.ParallelNode%maxParallelSetup))
+		fl, err := filelock.New(lockFilePath + strconv.Itoa(ginkgoconfig.GinkgoConfig.ParallelNode%maxParallelSetup))
 		Expect(err).ToNot(HaveOccurred())
 		fl.Must().Lock()
 		defer fl.Must().Unlock()
 
-		patsTestContext = helpers.NewContext(cfConfig)
-		patsTestEnvironment = helpers.NewEnvironment(patsTestContext)
+		patsTestSetup = workflowhelpers.NewTestSuiteSetup(cfConfig)
 
-		patsTestEnvironment.Setup()
+		patsTestSetup.Setup()
 		if pConfig.IsolationSegment != "" {
-			cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				Eventually(cf.Cf("create-isolation-segment", pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("enable-org-isolation", patsTestContext.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("set-org-default-isolation-segment", patsTestContext.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("enable-org-isolation", patsTestSetup.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
+				Eventually(cf.Cf("set-org-default-isolation-segment", patsTestSetup.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
 			})
 		}
 	})
 
 	SynchronizedAfterSuite(func() {
-		if patsTestEnvironment != nil {
-			patsTestEnvironment.Teardown()
+		if patsTestSetup != nil {
+			patsTestSetup.Teardown()
 		}
 	}, func() {
-		cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+		workflowhelpers.AsUser(patsSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			if os.Getenv("TEST_DOCKER_PORA") == "true" {
 				Eventually(cf.Cf("disable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
 			}
@@ -126,9 +125,6 @@ func TestPersiAcceptance(t *testing.T) {
 				Fail("pats service broker could not be cleaned up.")
 			}
 		})
-		if patsAdminEnvironment != nil {
-			patsAdminEnvironment.Teardown()
-		}
 	})
 
 	if cfConfig.ArtifactsDirectory != "" {
@@ -139,9 +135,9 @@ func TestPersiAcceptance(t *testing.T) {
 	RunSpecsWithDefaultAndCustomReporters(t, componentName, rs)
 }
 
-func defaults(config *helpers.Config) {
+func defaults(config *config.Config) {
 	if config.DefaultTimeout > 0 {
-		DEFAULT_TIMEOUT = config.DefaultTimeout * time.Second
+		DEFAULT_TIMEOUT = time.Duration(config.DefaultTimeout) * time.Second
 	}
 }
 
@@ -165,7 +161,7 @@ type patsConfig struct {
 }
 
 func getPatsSpecificConfig() error {
-	configFile, err := os.Open(helpers.ConfigPath())
+	configFile, err := os.Open(config.ConfigPath())
 	if err != nil {
 		return err
 	}
@@ -196,7 +192,7 @@ func (b *broker) Create() {
 		return
 	}
 
-	cf.AsUser(patsSuiteContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+	workflowhelpers.AsUser(patsSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 		createServiceBroker := cf.Cf("create-service-broker", brokerName, pConfig.BrokerUser, pConfig.BrokerPassword, pConfig.BrokerUrl).Wait(DEFAULT_TIMEOUT)
 		Expect(createServiceBroker).To(Exit(0))
 		Expect(createServiceBroker).To(Say(brokerName))

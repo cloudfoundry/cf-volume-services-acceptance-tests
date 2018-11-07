@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
+	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
@@ -45,7 +46,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 	Context("given a service broker", func() {
 		It("should have a volume service broker", func() {
-			cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				serviceBrokers := cf.Cf("service-brokers").Wait(DEFAULT_TIMEOUT)
 				Expect(serviceBrokers).To(Exit(0))
 				Expect(serviceBrokers).To(Say(brokerName))
@@ -53,41 +54,41 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 		})
 
 		It("should not have enabled access", func() {
-			cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+			workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
 				Expect(serviceAccess).To(Exit(0))
 				Expect(serviceAccess).To(Say(brokerName))
 				Expect(serviceAccess).To(Say(pConfig.ServiceName + ".*" + pConfig.PlanName + ".*"))
-				Expect(serviceAccess).NotTo(Say(patsTestContext.RegularUserContext().Org))
+				Expect(serviceAccess).NotTo(Say(patsTestSetup.RegularUserContext().Org))
 			})
 		})
 
 		Context("given an enabled service", func() {
 			BeforeEach(func() {
-				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-					publishService := cf.Cf("enable-service-access", pConfig.ServiceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+				workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+					publishService := cf.Cf("enable-service-access", pConfig.ServiceName, "-o", patsTestSetup.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
 					Expect(publishService).To(Exit(0))
 				})
 			})
 
 			AfterEach(func() {
-				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-					publishService := cf.Cf("disable-service-access", pConfig.ServiceName, "-o", patsTestContext.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+				workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+					publishService := cf.Cf("disable-service-access", pConfig.ServiceName, "-o", patsTestSetup.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
 					Expect(publishService).To(Exit(0))
 				})
 			})
 
 			It("should have enabled access", func() {
-				cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+				workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 					serviceAccess := cf.Cf("service-access").Wait(DEFAULT_TIMEOUT)
 					Expect(serviceAccess).To(Exit(0))
 					Expect(serviceAccess).To(Say(brokerName))
-					Expect(serviceAccess).To(Say(pConfig.ServiceName + ".*" + pConfig.PlanName + ".*limited.*" + patsTestContext.RegularUserContext().Org))
+					Expect(serviceAccess).To(Say(pConfig.ServiceName + ".*" + pConfig.PlanName + ".*limited.*" + patsTestSetup.RegularUserContext().Org))
 				})
 			})
 
 			It("should be able to find a service in the marketplace", func() {
-				cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+				workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 					marketplaceItems := cf.Cf("marketplace").Wait(DEFAULT_TIMEOUT)
 					Expect(marketplaceItems).To(Exit(0))
 					Expect(marketplaceItems).To(Say(pConfig.ServiceName))
@@ -97,7 +98,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 			Context("given a service instance", func() {
 				BeforeEach(func() {
-					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+					workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						var (
 							createService, createBogusService, createLazyUnmountService *Session
 						)
@@ -153,7 +154,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				})
 
 				AfterEach(func() {
-					cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+					workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
 
 						if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
@@ -172,7 +173,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						return serviceDetails
 					}, LONG_TIMEOUT, POLL_INTERVAL).Should(Not(Say(instanceName)))
 
-					cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+					workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 						cf.Cf("purge-service-instance", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
 					})
 
@@ -183,7 +184,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							return serviceDetails
 						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Not(Say(bogusInstanceName)))
 
-						cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+						workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 							cf.Cf("purge-service-instance", bogusInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
 						})
 					}
@@ -195,7 +196,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							return serviceDetails
 						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Not(Say(lazyUnmountInstanceName)))
 
-						cf.AsUser(patsTestContext.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+						workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 							cf.Cf("purge-service-instance", lazyUnmountInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
 						})
 					}
@@ -210,7 +211,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					Context("given an installed cf app bound to bogus service", func() {
 						var appPath string
 						BeforeEach(func() {
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								appPath = os.Getenv("TEST_APPLICATION_PATH")
 								Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 								Eventually(cf.Cf("push", bogusAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
@@ -228,14 +229,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 
 						AfterEach(func() {
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								cf.Cf("unbind-service", bogusAppName, bogusInstanceName).Wait(DEFAULT_TIMEOUT)
 								cf.Cf("delete", bogusAppName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 							})
 						})
 
 						It("should see errors in cf logs", func() {
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								Eventually(cf.Cf("logs", bogusAppName, "--recent").Wait(DEFAULT_TIMEOUT)).Should(Say("failed to mount volume"))
 							})
 						})
@@ -245,7 +246,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				Context("given an installed cf app", func() {
 					var appPath string
 					BeforeEach(func() {
-						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							if os.Getenv("TEST_DOCKER_PORA") == "true" {
 								Eventually(cf.Cf("push", appName, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 							} else {
@@ -264,13 +265,13 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					})
 
 					AfterEach(func() {
-						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							cf.Cf("delete", appName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 						})
 					})
 
 					It("it should have the app", func() {
-						cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+						workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 							marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
 							Expect(marketplaceItems).To(Exit(0))
 							Expect(marketplaceItems).To(Say(appName))
@@ -279,7 +280,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 					Context("when the app is bound", func() {
 						BeforeEach(func() {
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								if pConfig.BindConfig == "" {
 									bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 									Expect(bindResponse).To(Exit(0))
@@ -291,7 +292,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 
 						AfterEach(func() {
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
 								cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
 
@@ -300,7 +301,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						})
 
 						It("should show up as a bound app in a listing of services", func() {
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 								Expect(services).To(Exit(0))
 								Expect(services).To(Say(instanceName + "[^\\n]+" + pConfig.ServiceName + "[^\\n]+" + appName))
@@ -309,14 +310,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 						Context("when the app is started", func() {
 							BeforeEach(func() {
-								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
 									Expect(bindResponse).To(Exit(0))
 								})
 							})
 
 							AfterEach(func() {
-								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
 									cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
 								})
@@ -330,7 +331,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 
 							It("should include the volume mount path in the application's environment", func() {
-								cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									env := cf.Cf("env", appName).Wait(DEFAULT_TIMEOUT)
 									Expect(env).To(Exit(0))
 									Expect(env).To(Say(pConfig.ServiceName))
@@ -351,7 +352,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									var cellId, instanceId string
 
 									BeforeEach(func() {
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											appPath := os.Getenv("TEST_APPLICATION_PATH")
 											Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 
@@ -369,7 +370,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											Expect(startResponse).To(Exit(0))
 										})
 
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											cellInstanceLine := "\\[CELL/0].*Cell (.*) successfully created container for instance (.*)"
 											re, err := regexp.Compile(cellInstanceLine)
 											Expect(err).NotTo(HaveOccurred())
@@ -416,7 +417,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										Consistently(block, 2).ShouldNot(Receive())
 
 										By("Stopping the app")
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											stopResponse := cf.Cf("stop", lazyUnmountAppName).Wait(DEFAULT_TIMEOUT)
 											Expect(stopResponse).To(Exit(0))
 										})
@@ -439,7 +440,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											return cmdRunner(cmd)
 										}, 30).Should(Equal(0))
 
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											cf.Cf("unbind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
 											cf.Cf("delete", lazyUnmountAppName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 										})
@@ -467,7 +468,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										}()
 									}
 
-									cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 										for i := 0; i < 20; i++ {
 											stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
 											Expect(stopResponse).To(Exit(0))
@@ -498,7 +499,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Context("when the app is scaled across cells", func() {
 									const appScale = 5
 									BeforeEach(func() {
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
 											Expect(bindResponse).To(Exit(0))
 
@@ -544,7 +545,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									)
 									BeforeEach(func() {
 										app2Name = appName + "-2"
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											if os.Getenv("TEST_DOCKER_PORA") == "true" {
 												Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 											} else {
@@ -563,7 +564,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 									})
 									AfterEach(func() {
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
 
 											cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
@@ -614,7 +615,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									)
 									BeforeEach(func() {
 										app2Name = appName + "-2"
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											if os.Getenv("TEST_DOCKER_PORA") == "true" {
 												Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 											} else {
@@ -639,7 +640,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 									})
 									AfterEach(func() {
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
 
 											cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
@@ -647,7 +648,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 
 									It("should include the volume mount as read only in the second application's environment", func() {
-										cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 											env := cf.Cf("env", app2Name).Wait(DEFAULT_TIMEOUT)
 											Expect(env).To(Exit(0))
 											Expect(env).To(Say(pConfig.ServiceName))
@@ -708,7 +709,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 					Context("with bind config", func() {
 						AfterEach(func() {
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
 								cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
 								cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
@@ -720,12 +721,12 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								Skip("not testing LDAP config")
 							}
 
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedLdapBindConfig).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).To(Exit(0))
 							})
 
-							cf.AsUser(patsTestContext.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
 								Expect(bindResponse).NotTo(Exit(0))
 							})
