@@ -237,7 +237,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 						It("should see errors in cf logs", func() {
 							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								Eventually(cf.Cf("logs", bogusAppName, "--recent").Wait(DEFAULT_TIMEOUT)).Should(Say("failed to mount volume"))
+								Eventually(cf.Cf("logs", bogusAppName, "--recent").Wait(DEFAULT_TIMEOUT)).Should(Say("failed to mount volume, errors:"))
 							})
 						})
 					})
