@@ -723,11 +723,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedLdapBindConfig).Wait(DEFAULT_TIMEOUT)
-								Expect(bindResponse).To(Exit(0))
-							})
-
-							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
 								Expect(bindResponse).NotTo(Exit(0))
 							})
 						})
