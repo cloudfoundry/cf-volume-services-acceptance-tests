@@ -716,13 +716,24 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							})
 						})
 
-						It("fails to start if bind config is not allowed", func() {
+						It("fails to bind if bind config is not allowed due to LDAP", func() {
 							if pConfig.DisallowedLdapBindConfig == "" {
 								Skip("not testing LDAP config")
 							}
 
 							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedLdapBindConfig).Wait(DEFAULT_TIMEOUT)
+								Expect(bindResponse).NotTo(Exit(0))
+							})
+						})
+
+						It("fails to bind if bind config has non allowed overrides", func() {
+							if pConfig.DisallowedOverrideBindConfig == "" {
+								Skip("not testing disallowed config override")
+							}
+
+							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedOverrideBindConfig).Wait(DEFAULT_TIMEOUT)
 								Expect(bindResponse).NotTo(Exit(0))
 							})
 						})

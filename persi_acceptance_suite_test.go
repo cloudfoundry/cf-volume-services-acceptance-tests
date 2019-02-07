@@ -158,6 +158,7 @@ type patsConfig struct {
 	BindLazyUnmountConfig              string `json:"bind_lazy_unmount_config"`
 	IsolationSegment                   string `json:"isolation_segment"`
 	DisallowedLdapBindConfig           string `json:"disallowed_ldap_bind_config"`
+	DisallowedOverrideBindConfig       string `json:"disallowed_override_bind_config"`
 }
 
 func getPatsSpecificConfig() error {
