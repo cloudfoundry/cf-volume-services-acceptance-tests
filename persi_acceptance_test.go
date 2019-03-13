@@ -323,14 +323,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								})
 							})
 
-							It("should respond to http requests", func() {
+							It("should verify that the app mounted the volume", func() {
+								By("verifying that it responds to http requests")
 								body, status, err := get(appURL)
 								Expect(err).NotTo(HaveOccurred())
 								Expect(body).To(ContainSubstring("instance index:"))
 								Expect(status).To(Equal(http.StatusOK))
-							})
 
-							It("should include the volume mount path in the application's environment", func() {
+								By("verifying that the volume mount path is included in the application's environment")
 								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									env := cf.Cf("env", appName).Wait(DEFAULT_TIMEOUT)
 									Expect(env).To(Exit(0))
@@ -338,10 +338,9 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(env).To(Say(instanceName))
 									Expect(env).To(Or(Say("container_path"), Say("container_dir")))
 								})
-							})
 
-							It("should be able to write to the volume", func() {
-								body, status, err := get(appURL + "/write")
+								By("verifying that the app is able to write to the volume")
+								body, status, err = get(appURL + "/write")
 								Expect(err).NotTo(HaveOccurred())
 								Expect(body).To(ContainSubstring("Hello Persistent World"))
 								Expect(status).To(Equal(http.StatusOK))
