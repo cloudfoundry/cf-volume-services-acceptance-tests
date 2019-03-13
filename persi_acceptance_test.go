@@ -215,7 +215,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								appPath = os.Getenv("TEST_APPLICATION_PATH")
 								Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 								Eventually(cf.Cf("push", bogusAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-								Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(bogusAppName), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 								if pConfig.BindBogusConfig == "" {
 									bindResponse := cf.Cf("bind-service", bogusAppName, bogusInstanceName).Wait(DEFAULT_TIMEOUT)
 									Expect(bindResponse).To(Exit(0))
@@ -260,7 +259,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 								}
 							}
-							Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(appName), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 						})
 					})
 
@@ -552,7 +550,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 											}
-											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
 											bindConfig := `{"uid":"5000","gid":"5000"}`
 											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
@@ -622,7 +619,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 											}
-											Eventually(cf.Cf("curl", "/v2/apps/"+GetAppGuid(app2Name), "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
 
 											bindConfig := pConfig.BindConfig
 											if bindConfig == "" || strings.Contains(bindConfig, "{}") {
