@@ -324,7 +324,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 								})
 
-								FIt("should verify that the app mounted the volume", func() {
+								It("should verify that the app mounted the volume", func() {
 									By("verifying that it responds to http requests")
 									body, status, err := get(appURL)
 									Expect(err).NotTo(HaveOccurred())
