@@ -26,8 +26,8 @@ import (
 )
 
 var (
-	cfConfig       *config.Config
-	pConfig        patsConfig
+	cfConfig       = loadConfigAndDefaultValues()
+	pConfig        = getPatsSpecificConfig()
 	patsSuiteSetup *workflowhelpers.ReproducibleTestSuiteSetup
 	patsTestSetup  *workflowhelpers.ReproducibleTestSuiteSetup
 
@@ -40,14 +40,6 @@ var (
 
 func TestPersiAcceptance(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	cfConfig = config.LoadConfig()
-	defaults(cfConfig)
-
-	err := getPatsSpecificConfig()
-	if err != nil {
-		panic(err)
-	}
 
 	serviceBroker := &broker{
 		Name:     pConfig.ServiceName + "-broker",
@@ -153,7 +145,7 @@ type patsConfig struct {
 	LazyUnmountVmInstance              string `json:"lazy_unmount_vm_instance"`
 	LazyUnmountRemoteServerJobName     string `json:"lazy_unmount_remote_server_job_name"`
 	LazyUnmountRemoteServerProcessName string `json:"lazy_unmount_remote_server_process_name"`
-	BindConfig                         string `json:"bind_config"`
+	BindConfig                         []string `json:"bind_config"`
 	BindBogusConfig                    string `json:"bind_bogus_config"`
 	BindLazyUnmountConfig              string `json:"bind_lazy_unmount_config"`
 	IsolationSegment                   string `json:"isolation_segment"`
@@ -161,11 +153,13 @@ type patsConfig struct {
 	DisallowedOverrideBindConfig       string `json:"disallowed_override_bind_config"`
 }
 
-func getPatsSpecificConfig() error {
+
+func getPatsSpecificConfig() patsConfig {
 	configFile, err := os.Open(config.ConfigPath())
 	if err != nil {
-		return err
+		panic(err)
 	}
+
 	defer configFile.Close()
 
 	decoder := json.NewDecoder(configFile)
@@ -173,12 +167,18 @@ func getPatsSpecificConfig() error {
 	config := &patsConfig{}
 	err = decoder.Decode(config)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	pConfig = *config
-	return nil
+	return *config
 }
+
+func loadConfigAndDefaultValues() *config.Config {
+	config := config.LoadConfig()
+	defaults(config)
+	return config
+}
+
 
 type broker struct {
 	Name     string

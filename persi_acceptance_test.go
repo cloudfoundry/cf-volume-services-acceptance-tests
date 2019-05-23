@@ -242,75 +242,53 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					})
 				}
 
-				Context("given an installed cf app", func() {
-					var appPath string
-					BeforeEach(func() {
-						workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-							if os.Getenv("TEST_DOCKER_PORA") == "true" {
-								Eventually(cf.Cf("push", appName, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-							} else {
-								appPath = os.Getenv("TEST_APPLICATION_PATH")
-								Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
 
-								if os.Getenv("TEST_WINDOWS_CELL") == "true" {
-									appPathToUse := fmt.Sprintf("%s-%s", appPath, "windows")
-									Eventually(cf.Cf("push", appName, "-s", "windows2016", "-p", appPathToUse, "-f", appPathToUse+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-								} else {
-									Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-								}
-							}
-						})
-					})
-
-					AfterEach(func() {
-						workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-							cf.Cf("delete", appName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
-						})
-					})
-
-					It("it should have the app", func() {
-						workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-							marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
-							Expect(marketplaceItems).To(Exit(0))
-							Expect(marketplaceItems).To(Say(appName))
-						})
-					})
-
-					Context("when the app is bound", func() {
+				for _, bindConfig := range pConfig.BindConfig {
+					Context("given an installed cf app", func() {
+						var bindConfigToUse string = bindConfig
+						var appPath string
 						BeforeEach(func() {
 							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								if pConfig.BindConfig == "" {
-									bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
-									Expect(bindResponse).To(Exit(0))
+								if os.Getenv("TEST_DOCKER_PORA") == "true" {
+									Eventually(cf.Cf("push", appName, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 								} else {
-									bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.BindConfig).Wait(DEFAULT_TIMEOUT)
-									Expect(bindResponse).To(Exit(0))
+									appPath = os.Getenv("TEST_APPLICATION_PATH")
+									Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+
+									if os.Getenv("TEST_WINDOWS_CELL") == "true" {
+										appPathToUse := fmt.Sprintf("%s-%s", appPath, "windows")
+										Eventually(cf.Cf("push", appName, "-s", "windows2016", "-p", appPathToUse, "-f", appPathToUse+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+									} else {
+										Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+									}
 								}
 							})
 						})
 
 						AfterEach(func() {
 							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
-								cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
-
-								cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
+								cf.Cf("delete", appName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 							})
 						})
 
-						It("should show up as a bound app in a listing of services", func() {
+						It("it should have the app", func() {
 							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
-								Expect(services).To(Exit(0))
-								Expect(services).To(Say(instanceName + "[^\\n]+" + pConfig.ServiceName + "[^\\n]+" + appName))
+								marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
+								Expect(marketplaceItems).To(Exit(0))
+								Expect(marketplaceItems).To(Say(appName))
 							})
 						})
 
-						Context("when the app is started", func() {
+						Context(fmt.Sprintf("when the app is bound with config [%s]", bindConfig), func() {
 							BeforeEach(func() {
 								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-									bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
-									Expect(bindResponse).To(Exit(0))
+									if bindConfigToUse == "" {
+										bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
+										Expect(bindResponse).To(Exit(0))
+									} else {
+										bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", bindConfigToUse).Wait(DEFAULT_TIMEOUT)
+										Expect(bindResponse).To(Exit(0))
+									}
 								})
 							})
 
@@ -318,435 +296,451 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 									cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
 									cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+
+									cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 								})
 							})
 
-							It("should verify that the app mounted the volume", func() {
-								By("verifying that it responds to http requests")
-								body, status, err := get(appURL)
-								Expect(err).NotTo(HaveOccurred())
-								Expect(body).To(ContainSubstring("instance index:"))
-								Expect(status).To(Equal(http.StatusOK))
-
-								By("verifying that the volume mount path is included in the application's environment")
+							It("should show up as a bound app in a listing of services", func() {
 								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-									env := cf.Cf("env", appName).Wait(DEFAULT_TIMEOUT)
-									Expect(env).To(Exit(0))
-									Expect(env).To(Say(pConfig.ServiceName))
-									Expect(env).To(Say(instanceName))
-									Expect(env).To(Or(Say("container_path"), Say("container_dir")))
+									services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
+									Expect(services).To(Exit(0))
+									Expect(services).To(Say(instanceName + "[^\\n]+" + pConfig.ServiceName + "[^\\n]+" + appName))
 								})
-
-								By("verifying that the app is able to write to the volume")
-								body, status, err = get(appURL + "/write")
-								Expect(err).NotTo(HaveOccurred())
-								Expect(body).To(ContainSubstring("Hello Persistent World"))
-								Expect(status).To(Equal(http.StatusOK))
 							})
 
-							if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-								Context("when the remote server becomes unavailable", func() {
-									var cellId, instanceId string
-
-									BeforeEach(func() {
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											appPath := os.Getenv("TEST_APPLICATION_PATH")
-											Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-
-											Eventually(cf.Cf("push", lazyUnmountAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-
-											if pConfig.BindLazyUnmountConfig == "" {
-												bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
-												Expect(bindResponse).To(Exit(0))
-											} else {
-												bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName, "-c", pConfig.BindLazyUnmountConfig).Wait(DEFAULT_TIMEOUT)
-												Expect(bindResponse).To(Exit(0))
-											}
-
-											startResponse := cf.Cf("start", lazyUnmountAppName).Wait(LONG_TIMEOUT)
-											Expect(startResponse).To(Exit(0))
-										})
-
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											cellInstanceLine := "\\[CELL/0].*Cell (.*) successfully created container for instance (.*)"
-											re, err := regexp.Compile(cellInstanceLine)
-											Expect(err).NotTo(HaveOccurred())
-
-											var cfOut *Buffer
-											Eventually(func() *Buffer {
-												session := cf.Cf("logs", lazyUnmountAppName, "--recent").Wait(DEFAULT_TIMEOUT)
-												cfOut = session.Out
-												return cfOut
-											}).Should(Say(cellInstanceLine))
-
-											matches := re.FindSubmatch(cfOut.Contents())
-											Expect(matches).To(HaveLen(3))
-
-											cellId = string(matches[1])
-											instanceId = string(matches[2])
-										})
-										Expect(cellId).NotTo(BeEmpty())
-										Expect(instanceId).NotTo(BeEmpty())
-
-										By("Checking that the mounts are present (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
-										cmd := exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
-										Expect(cmdRunner(cmd)).To(Equal(0))
-									})
-
-									It("should unmount cleanly", func() {
-										By("Stopping the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit stop " + pConfig.LazyUnmountRemoteServerJobName + ")")
-										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit stop "+pConfig.LazyUnmountRemoteServerJobName+"")
-										Expect(cmdRunner(cmd)).To(Equal(0))
-
-										By("Checking that the remote server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /bin/pidof -s " + pConfig.LazyUnmountRemoteServerProcessName + ")")
-										Eventually(func() int {
-											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /bin/pidof -s "+pConfig.LazyUnmountRemoteServerProcessName)
-											return cmdRunner(cmd)
-										}, 30).Should(Equal(1))
-
-										// curl the write endpoint (will block)
-										By("Curling the /write endpoint in a goroutine")
-										block := make(chan bool)
-										go func() {
-											get("http://" + lazyUnmountAppName + "." + cfConfig.AppsDomain + "/write")
-											block <- true
-										}()
-										Consistently(block, 2).ShouldNot(Receive())
-
-										By("Stopping the app")
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											stopResponse := cf.Cf("stop", lazyUnmountAppName).Wait(DEFAULT_TIMEOUT)
-											Expect(stopResponse).To(Exit(0))
-										})
-
-										By("Waiting for the container to be detroyed (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
-										Eventually(func() int {
-											cmd = exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
-											return cmdRunner(cmd)
-										}, 30).Should(Equal(1))
-									})
-
-									AfterEach(func() {
-										By("Restarting the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start " + pConfig.LazyUnmountRemoteServerJobName + ")")
-										cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit start "+pConfig.LazyUnmountRemoteServerJobName+"")
-										Expect(cmdRunner(cmd)).To(Equal(0))
-
-										By("Checking that the remote server is running (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep " + pConfig.LazyUnmountRemoteServerJobName + " | grep running)")
-										Eventually(func() int {
-											cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep "+pConfig.LazyUnmountRemoteServerJobName+" | grep running")
-											return cmdRunner(cmd)
-										}, 30).Should(Equal(0))
-
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											cf.Cf("unbind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
-											cf.Cf("delete", lazyUnmountAppName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
-										})
+							Context("when the app is started", func() {
+								BeforeEach(func() {
+									workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										bindResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
+										Expect(bindResponse).To(Exit(0))
 									})
 								})
-							}
 
-							if os.Getenv("TEST_MULTI_CELL") == "true" {
-								It("should keep the data across multiple stops and starts", func() {
-									fname, status, err := get(appURL + "/create")
+								AfterEach(func() {
+									workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+										cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
+										cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+									})
+								})
+
+								FIt("should verify that the app mounted the volume", func() {
+									By("verifying that it responds to http requests")
+									body, status, err := get(appURL)
 									Expect(err).NotTo(HaveOccurred())
-									Expect(fname).To(ContainSubstring("pora"))
+									Expect(body).To(ContainSubstring("instance index:"))
 									Expect(status).To(Equal(http.StatusOK))
 
-									// start a bunch of simultaneous requests to do file io
-									var wg sync.WaitGroup
-									var done bool
-									wg.Add(10)
-									for i := 0; i < 10; i++ {
-										go func() {
-											for !done {
-												get(appURL + "/loadtest")
-											}
-											wg.Done()
-										}()
-									}
-
+									By("verifying that the volume mount path is included in the application's environment")
 									workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-										for i := 0; i < 20; i++ {
-											stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
-											Expect(stopResponse).To(Exit(0))
-											startResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
-											Expect(startResponse).To(Exit(0))
-										}
+										env := cf.Cf("env", appName).Wait(DEFAULT_TIMEOUT)
+										Expect(env).To(Exit(0))
+										Expect(env).To(Say(pConfig.ServiceName))
+										Expect(env).To(Say(instanceName))
+										Expect(env).To(Or(Say("container_path"), Say("container_dir")))
 									})
 
-									// signal our background load to stop and then wait for it
-									done = true
-									wg.Wait()
-
-									body, status, err := get(appURL + "/read/" + fname)
+									By("verifying that the app is able to write to the volume")
+									body, status, err = get(appURL + "/write")
 									Expect(err).NotTo(HaveOccurred())
 									Expect(body).To(ContainSubstring("Hello Persistent World"))
 									Expect(status).To(Equal(http.StatusOK))
-
-									body2, status, err := get(appURL + "/delete/" + fname)
-									Expect(err).NotTo(HaveOccurred())
-									Expect(body2).To(ContainSubstring(fname))
-									Expect(status).To(Equal(http.StatusOK))
-
-									// clean up any load test files that got left behind on the mount due to apps stopping
-									// and starting
-									get(appURL + "/loadtestcleanup")
 								})
 
-								Context("when the app is scaled across cells", func() {
-									const appScale = 5
-									BeforeEach(func() {
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
-											Expect(bindResponse).To(Exit(0))
+								if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
+									Context("when the remote server becomes unavailable", func() {
+										var cellId, instanceId string
 
-											// wait for app to scale
+										BeforeEach(func() {
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												appPath := os.Getenv("TEST_APPLICATION_PATH")
+												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+
+												Eventually(cf.Cf("push", lazyUnmountAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+
+												if pConfig.BindLazyUnmountConfig == "" {
+													bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
+													Expect(bindResponse).To(Exit(0))
+												} else {
+													bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName, "-c", pConfig.BindLazyUnmountConfig).Wait(DEFAULT_TIMEOUT)
+													Expect(bindResponse).To(Exit(0))
+												}
+
+												startResponse := cf.Cf("start", lazyUnmountAppName).Wait(LONG_TIMEOUT)
+												Expect(startResponse).To(Exit(0))
+											})
+
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												cellInstanceLine := "\\[CELL/0].*Cell (.*) successfully created container for instance (.*)"
+												re, err := regexp.Compile(cellInstanceLine)
+												Expect(err).NotTo(HaveOccurred())
+
+												var cfOut *Buffer
+												Eventually(func() *Buffer {
+													session := cf.Cf("logs", lazyUnmountAppName, "--recent").Wait(DEFAULT_TIMEOUT)
+													cfOut = session.Out
+													return cfOut
+												}).Should(Say(cellInstanceLine))
+
+												matches := re.FindSubmatch(cfOut.Contents())
+												Expect(matches).To(HaveLen(3))
+
+												cellId = string(matches[1])
+												instanceId = string(matches[2])
+											})
+											Expect(cellId).NotTo(BeEmpty())
+											Expect(instanceId).NotTo(BeEmpty())
+
+											By("Checking that the mounts are present (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
+											cmd := exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
+											Expect(cmdRunner(cmd)).To(Equal(0))
+										})
+
+										It("should unmount cleanly", func() {
+											By("Stopping the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit stop " + pConfig.LazyUnmountRemoteServerJobName + ")")
+											cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit stop "+pConfig.LazyUnmountRemoteServerJobName+"")
+											Expect(cmdRunner(cmd)).To(Equal(0))
+
+											By("Checking that the remote server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /bin/pidof -s " + pConfig.LazyUnmountRemoteServerProcessName + ")")
 											Eventually(func() int {
-												apps := cf.Cf("app", appName).Wait(DEFAULT_TIMEOUT)
-												Expect(apps).To(Exit(0))
-												return bytes.Count(apps.Out.Contents(), []byte("running"))
-											}, LONG_TIMEOUT, POLL_INTERVAL).Should(Equal(appScale))
+												cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /bin/pidof -s "+pConfig.LazyUnmountRemoteServerProcessName)
+												return cmdRunner(cmd)
+											}, 30).Should(Equal(1))
+
+											// curl the write endpoint (will block)
+											By("Curling the /write endpoint in a goroutine")
+											block := make(chan bool)
+											go func() {
+												get("http://" + lazyUnmountAppName + "." + cfConfig.AppsDomain + "/write")
+												block <- true
+											}()
+											Consistently(block, 2).ShouldNot(Receive())
+
+											By("Stopping the app")
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												stopResponse := cf.Cf("stop", lazyUnmountAppName).Wait(DEFAULT_TIMEOUT)
+												Expect(stopResponse).To(Exit(0))
+											})
+
+											By("Waiting for the container to be detroyed (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
+											Eventually(func() int {
+												cmd = exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
+												return cmdRunner(cmd)
+											}, 30).Should(Equal(1))
+										})
+
+										AfterEach(func() {
+											By("Restarting the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start " + pConfig.LazyUnmountRemoteServerJobName + ")")
+											cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit start "+pConfig.LazyUnmountRemoteServerJobName+"")
+											Expect(cmdRunner(cmd)).To(Equal(0))
+
+											By("Checking that the remote server is running (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep " + pConfig.LazyUnmountRemoteServerJobName + " | grep running)")
+											Eventually(func() int {
+												cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep "+pConfig.LazyUnmountRemoteServerJobName+" | grep running")
+												return cmdRunner(cmd)
+											}, 30).Should(Equal(0))
+
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												cf.Cf("unbind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
+												cf.Cf("delete", lazyUnmountAppName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+											})
 										})
 									})
+								}
 
-									It("should be able to create a test file then read it from any instance", func() {
+								if os.Getenv("TEST_MULTI_CELL") == "true" {
+									It("should keep the data across multiple stops and starts", func() {
 										fname, status, err := get(appURL + "/create")
 										Expect(err).NotTo(HaveOccurred())
 										Expect(fname).To(ContainSubstring("pora"))
 										Expect(status).To(Equal(http.StatusOK))
 
-										responses := map[string]int{}
-										for i := 0; i < appScale*10000; i++ {
-											body, status, err := get(appURL + "/read/" + fname)
-											Expect(err).NotTo(HaveOccurred())
-											Expect(body).To(ContainSubstring("Hello Persistent World"))
-											Expect(status).To(Equal(http.StatusOK))
-											responses[body] = 1
-											if len(responses) >= appScale {
-												break
-											}
+										// start a bunch of simultaneous requests to do file io
+										var wg sync.WaitGroup
+										var done bool
+										wg.Add(10)
+										for i := 0; i < 10; i++ {
+											go func() {
+												for !done {
+													get(appURL + "/loadtest")
+												}
+												wg.Done()
+											}()
 										}
-										body, status, err := get(appURL + "/delete/" + fname)
+
+										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+											for i := 0; i < 20; i++ {
+												stopResponse := cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+												Expect(stopResponse).To(Exit(0))
+												startResponse := cf.Cf("start", appName).Wait(LONG_TIMEOUT)
+												Expect(startResponse).To(Exit(0))
+											}
+										})
+
+										// signal our background load to stop and then wait for it
+										done = true
+										wg.Wait()
+
+										body, status, err := get(appURL + "/read/" + fname)
 										Expect(err).NotTo(HaveOccurred())
-										Expect(body).To(ContainSubstring(fname))
+										Expect(body).To(ContainSubstring("Hello Persistent World"))
 										Expect(status).To(Equal(http.StatusOK))
 
-										Expect(len(responses)).To(Equal(appScale))
-									})
-								})
-							}
-							if os.Getenv("TEST_MOUNT_OPTIONS") == "true" {
-								Context("when a second app is bound with a different uid and gid", func() {
-									var (
-										app2Name string
-									)
-									BeforeEach(func() {
-										app2Name = appName + "-2"
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											if os.Getenv("TEST_DOCKER_PORA") == "true" {
-												Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-											} else {
-												appPath = os.Getenv("TEST_APPLICATION_PATH")
-												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-											}
+										body2, status, err := get(appURL + "/delete/" + fname)
+										Expect(err).NotTo(HaveOccurred())
+										Expect(body2).To(ContainSubstring(fname))
+										Expect(status).To(Equal(http.StatusOK))
 
-											bindConfig := `{"uid":"5000","gid":"5000"}`
-											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
-											Expect(bindResponse).To(Exit(0))
-
-											startResponse := cf.Cf("start", app2Name).Wait(LONG_TIMEOUT)
-											Expect(startResponse).To(Exit(0))
-										})
-									})
-									AfterEach(func() {
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
-
-											cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
-										})
+										// clean up any load test files that got left behind on the mount due to apps stopping
+										// and starting
+										get(appURL + "/loadtestcleanup")
 									})
 
-									Context("when the first app create a file", func() {
-										var (
-											fname   string
-											app2URL string
-											status  int
-											err     error
-										)
+									Context("when the app is scaled across cells", func() {
+										const appScale = 5
 										BeforeEach(func() {
-											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
+												Expect(bindResponse).To(Exit(0))
 
-											fname, status, err = get(appURL + "/create")
+												// wait for app to scale
+												Eventually(func() int {
+													apps := cf.Cf("app", appName).Wait(DEFAULT_TIMEOUT)
+													Expect(apps).To(Exit(0))
+													return bytes.Count(apps.Out.Contents(), []byte("running"))
+												}, LONG_TIMEOUT, POLL_INTERVAL).Should(Equal(appScale))
+											})
+										})
+
+										It("should be able to create a test file then read it from any instance", func() {
+											fname, status, err := get(appURL + "/create")
 											Expect(err).NotTo(HaveOccurred())
 											Expect(fname).To(ContainSubstring("pora"))
 											Expect(status).To(Equal(http.StatusOK))
-										})
-										AfterEach(func() {
-											body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
+
+											responses := map[string]int{}
+											for i := 0; i < appScale*10000; i++ {
+												body, status, err := get(appURL + "/read/" + fname)
+												Expect(err).NotTo(HaveOccurred())
+												Expect(body).To(ContainSubstring("Hello Persistent World"))
+												Expect(status).To(Equal(http.StatusOK))
+												responses[body] = 1
+												if len(responses) >= appScale {
+													break
+												}
+											}
+											body, status, err := get(appURL + "/delete/" + fname)
 											Expect(err).NotTo(HaveOccurred())
 											Expect(body).To(ContainSubstring(fname))
 											Expect(status).To(Equal(http.StatusOK))
-										})
 
-										It("should be readable by the second app", func() {
-											body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
-											Expect(err).NotTo(HaveOccurred())
-											Expect(body).To(ContainSubstring("Hello Persistent World"))
-											Expect(status).To(Equal(http.StatusOK))
-										})
-
-										It("should not be deletable by the second app", func() {
-											body, status, _ := get(fmt.Sprintf("%s/delete/%s", app2URL, fname))
-											Expect(body).NotTo(ContainSubstring("deleted"))
-											Expect(status).NotTo(Equal(http.StatusOK))
+											Expect(len(responses)).To(Equal(appScale))
 										})
 									})
-								})
-							}
-							if os.Getenv("TEST_READ_ONLY") == "true" {
-								Context("when a second app is bound with a readonly mount", func() {
-									var (
-										app2Name string
-									)
-									BeforeEach(func() {
-										app2Name = appName + "-2"
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											if os.Getenv("TEST_DOCKER_PORA") == "true" {
-												Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-											} else {
-												appPath = os.Getenv("TEST_APPLICATION_PATH")
-												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-												Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-											}
-
-											bindConfig := pConfig.BindConfig
-											if bindConfig == "" || strings.Contains(bindConfig, "{}") {
-												bindConfig = `{"readonly":true}`
-											} else {
-												bindConfig = strings.Replace(bindConfig, "}", `,"readonly":true}`, 1)
-											}
-
-											bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
-											Expect(bindResponse).To(Exit(0))
-
-											startResponse := cf.Cf("start", app2Name).Wait(LONG_TIMEOUT)
-											Expect(startResponse).To(Exit(0))
-										})
-									})
-									AfterEach(func() {
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
-
-											cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
-										})
-									})
-
-									It("should include the volume mount as read only in the second application's environment", func() {
-										workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-											env := cf.Cf("env", app2Name).Wait(DEFAULT_TIMEOUT)
-											Expect(env).To(Exit(0))
-											Expect(env).To(Say(pConfig.ServiceName))
-											Expect(env).To(Say(instanceName))
-											Expect(env).To(Say(`"r"`))
-										})
-									})
-
-									Context("when the second app tries to write a file", func() {
+								}
+								if os.Getenv("TEST_MOUNT_OPTIONS") == "true" {
+									Context("when a second app is bound with a different uid and gid", func() {
 										var (
-											body    string
-											app2URL string
+											app2Name string
 										)
 										BeforeEach(func() {
-											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+											app2Name = appName + "-2"
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												if os.Getenv("TEST_DOCKER_PORA") == "true" {
+													Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+												} else {
+													appPath = os.Getenv("TEST_APPLICATION_PATH")
+													Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+													Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+												}
 
-											body, _, _ = get(app2URL + "/create")
-										})
+												bindConfig := `{"uid":"5000","gid":"5000"}`
+												bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfig).Wait(DEFAULT_TIMEOUT)
+												Expect(bindResponse).To(Exit(0))
 
-										It("should fail to write the file", func() {
-											Expect(body).To(ContainSubstring("read-only file system"))
-										})
-									})
-
-									Context("when the first app creates a file", func() {
-										var (
-											fname   string
-											app2URL string
-											status  int
-											err     error
-										)
-										BeforeEach(func() {
-											app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
-
-											fname, status, err = get(appURL + "/create")
-											Expect(err).NotTo(HaveOccurred())
-											Expect(fname).To(ContainSubstring("pora"))
-											Expect(status).To(Equal(http.StatusOK))
+												startResponse := cf.Cf("start", app2Name).Wait(LONG_TIMEOUT)
+												Expect(startResponse).To(Exit(0))
+											})
 										})
 										AfterEach(func() {
-											body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
-											Expect(err).NotTo(HaveOccurred())
-											Expect(body).To(ContainSubstring(fname))
-											Expect(status).To(Equal(http.StatusOK))
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
+
+												cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+											})
 										})
 
-										It("should be readable by the second app", func() {
-											body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
-											Expect(err).NotTo(HaveOccurred())
-											Expect(body).To(ContainSubstring("Hello Persistent World"))
-											Expect(status).To(Equal(http.StatusOK))
+										Context("when the first app create a file", func() {
+											var (
+												fname   string
+												app2URL string
+												status  int
+												err     error
+											)
+											BeforeEach(func() {
+												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+
+												fname, status, err = get(appURL + "/create")
+												Expect(err).NotTo(HaveOccurred())
+												Expect(fname).To(ContainSubstring("pora"))
+												Expect(status).To(Equal(http.StatusOK))
+											})
+											AfterEach(func() {
+												body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
+												Expect(err).NotTo(HaveOccurred())
+												Expect(body).To(ContainSubstring(fname))
+												Expect(status).To(Equal(http.StatusOK))
+											})
+
+											It("should be readable by the second app", func() {
+												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
+												Expect(err).NotTo(HaveOccurred())
+												Expect(body).To(ContainSubstring("Hello Persistent World"))
+												Expect(status).To(Equal(http.StatusOK))
+											})
+
+											It("should not be deletable by the second app", func() {
+												body, status, _ := get(fmt.Sprintf("%s/delete/%s", app2URL, fname))
+												Expect(body).NotTo(ContainSubstring("deleted"))
+												Expect(status).NotTo(Equal(http.StatusOK))
+											})
 										})
 									})
+								}
+								if os.Getenv("TEST_READ_ONLY") == "true" {
+									Context("when a second app is bound with a readonly mount", func() {
+										var (
+											app2Name string
+										)
+										BeforeEach(func() {
+											app2Name = appName + "-2"
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												if os.Getenv("TEST_DOCKER_PORA") == "true" {
+													Eventually(cf.Cf("push", app2Name, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+												} else {
+													appPath = os.Getenv("TEST_APPLICATION_PATH")
+													Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
+													Eventually(cf.Cf("push", app2Name, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+												}
+
+												if bindConfigToUse == "" || strings.Contains(bindConfigToUse, "{}") {
+													bindConfigToUse = `{"readonly":true}`
+												} else {
+													bindConfigToUse = strings.Replace(bindConfigToUse, "}", `,"readonly":true}`, 1)
+												}
+
+												bindResponse := cf.Cf("bind-service", app2Name, instanceName, "-c", bindConfigToUse).Wait(DEFAULT_TIMEOUT)
+												Expect(bindResponse).To(Exit(0))
+
+												startResponse := cf.Cf("start", app2Name).Wait(LONG_TIMEOUT)
+												Expect(startResponse).To(Exit(0))
+											})
+										})
+										AfterEach(func() {
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
+
+												cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
+											})
+										})
+
+										It("should include the volume mount as read only in the second application's environment", func() {
+											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+												env := cf.Cf("env", app2Name).Wait(DEFAULT_TIMEOUT)
+												Expect(env).To(Exit(0))
+												Expect(env).To(Say(pConfig.ServiceName))
+												Expect(env).To(Say(instanceName))
+												Expect(env).To(Say(`"r"`))
+											})
+										})
+
+										Context("when the second app tries to write a file", func() {
+											var (
+												body    string
+												app2URL string
+											)
+											BeforeEach(func() {
+												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+
+												body, _, _ = get(app2URL + "/create")
+											})
+
+											It("should fail to write the file", func() {
+												Expect(body).To(ContainSubstring("read-only file system"))
+											})
+										})
+
+										Context("when the first app creates a file", func() {
+											var (
+												fname   string
+												app2URL string
+												status  int
+												err     error
+											)
+											BeforeEach(func() {
+												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+
+												fname, status, err = get(appURL + "/create")
+												Expect(err).NotTo(HaveOccurred())
+												Expect(fname).To(ContainSubstring("pora"))
+												Expect(status).To(Equal(http.StatusOK))
+											})
+											AfterEach(func() {
+												body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
+												Expect(err).NotTo(HaveOccurred())
+												Expect(body).To(ContainSubstring(fname))
+												Expect(status).To(Equal(http.StatusOK))
+											})
+
+											It("should be readable by the second app", func() {
+												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
+												Expect(err).NotTo(HaveOccurred())
+												Expect(body).To(ContainSubstring("Hello Persistent World"))
+												Expect(status).To(Equal(http.StatusOK))
+											})
+										})
+									})
+								}
+							})
+						})
+
+						Context("with bind config", func() {
+							AfterEach(func() {
+								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
+									cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
+									cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 								})
-							}
-						})
-					})
-
-					Context("with bind config", func() {
-						AfterEach(func() {
-							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
-								cf.Cf("stop", appName).Wait(DEFAULT_TIMEOUT)
-								cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 							})
-						})
 
-						It("fails to bind if bind config is not allowed due to LDAP", func() {
-							if pConfig.DisallowedLdapBindConfig == "" {
-								Skip("not testing LDAP config")
-							}
+							It("fails to bind if bind config is not allowed due to LDAP", func() {
+								if pConfig.DisallowedLdapBindConfig == "" {
+									Skip("not testing LDAP config")
+								}
 
-							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedLdapBindConfig).Wait(DEFAULT_TIMEOUT)
-								Expect(bindResponse).NotTo(Exit(0))
+								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedLdapBindConfig).Wait(DEFAULT_TIMEOUT)
+									Expect(bindResponse).NotTo(Exit(0))
+								})
 							})
-						})
 
-						It("fails to bind if bind config has non allowed overrides", func() {
-							if pConfig.DisallowedOverrideBindConfig == "" {
-								Skip("not testing disallowed config override")
-							}
+							It("fails to bind if bind config has non allowed overrides", func() {
+								if pConfig.DisallowedOverrideBindConfig == "" {
+									Skip("not testing disallowed config override")
+								}
 
-							workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-								bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedOverrideBindConfig).Wait(DEFAULT_TIMEOUT)
-								Expect(bindResponse).NotTo(Exit(0))
+								workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+									bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", pConfig.DisallowedOverrideBindConfig).Wait(DEFAULT_TIMEOUT)
+									Expect(bindResponse).NotTo(Exit(0))
+								})
 							})
 						})
 					})
-				})
+				}
 			})
 		})
 	})
 })
-
-func GetAppGuid(appName string) string {
-	cfApp := cf.Cf("app", appName, "--guid")
-	Eventually(cfApp, DEFAULT_TIMEOUT).Should(Exit(0))
-
-	appGuid := strings.TrimSpace(string(cfApp.Out.Contents()))
-	Expect(appGuid).NotTo(Equal(""))
-	return appGuid
-}
 
 func get(uri string) (body string, status int, err error) {
 	req, err := http.NewRequest("GET", uri, nil)
