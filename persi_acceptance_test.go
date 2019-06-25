@@ -744,6 +744,9 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 func get(uri string) (body string, status int, err error) {
 	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return "", status, err
+	}
 
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
