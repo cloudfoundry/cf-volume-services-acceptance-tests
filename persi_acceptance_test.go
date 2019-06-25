@@ -20,6 +20,9 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
+const printErrorsOn = true
+const printErrorsOff = false
+
 var _ = Describe("Cloud Foundry Persistence", func() {
 	var (
 		appHost, appURL, appName, instanceName      string
@@ -326,7 +329,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 								It("should verify that the app mounted the volume", func() {
 									By("verifying that it responds to http requests")
-									body, status, err := get(appURL)
+									body, status, err := get(appURL, printErrorsOn)
 									Expect(err).NotTo(HaveOccurred())
 									Expect(body).To(ContainSubstring("instance index:"))
 									Expect(status).To(Equal(http.StatusOK))
@@ -341,7 +344,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 
 									By("verifying that the app is able to write to the volume")
-									body, status, err = get(appURL + "/write")
+									body, status, err = get(appURL + "/write", printErrorsOn)
 									Expect(err).NotTo(HaveOccurred())
 									Expect(body).To(ContainSubstring("Hello Persistent World"))
 									Expect(status).To(Equal(http.StatusOK))
@@ -411,7 +414,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											By("Curling the /write endpoint in a goroutine")
 											block := make(chan bool)
 											go func() {
-												get("http://" + lazyUnmountAppName + "." + cfConfig.AppsDomain + "/write")
+												get("http://" + lazyUnmountAppName + "." + cfConfig.AppsDomain + "/write", printErrorsOff)
 												block <- true
 											}()
 											Consistently(block, 2).ShouldNot(Receive())
@@ -450,7 +453,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 								if os.Getenv("TEST_MULTI_CELL") == "true" {
 									It("should keep the data across multiple stops and starts", func() {
-										fname, status, err := get(appURL + "/create")
+										fname, status, err := get(appURL + "/create", printErrorsOn)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(fname).To(ContainSubstring("pora"))
 										Expect(status).To(Equal(http.StatusOK))
@@ -462,7 +465,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										for i := 0; i < 10; i++ {
 											go func() {
 												for !done {
-													get(appURL + "/loadtest")
+													get(appURL + "/loadtest", printErrorsOff)
 												}
 												wg.Done()
 											}()
@@ -481,19 +484,19 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										done = true
 										wg.Wait()
 
-										body, status, err := get(appURL + "/read/" + fname)
+										body, status, err := get(appURL + "/read/" + fname, printErrorsOn)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(body).To(ContainSubstring("Hello Persistent World"))
 										Expect(status).To(Equal(http.StatusOK))
 
-										body2, status, err := get(appURL + "/delete/" + fname)
+										body2, status, err := get(appURL + "/delete/" + fname, printErrorsOn)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(body2).To(ContainSubstring(fname))
 										Expect(status).To(Equal(http.StatusOK))
 
 										// clean up any load test files that got left behind on the mount due to apps stopping
 										// and starting
-										get(appURL + "/loadtestcleanup")
+										get(appURL + "/loadtestcleanup", printErrorsOn)
 									})
 
 									Context("when the app is scaled across cells", func() {
@@ -513,14 +516,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 
 										It("should be able to create a test file then read it from any instance", func() {
-											fname, status, err := get(appURL + "/create")
+											fname, status, err := get(appURL + "/create", printErrorsOn)
 											Expect(err).NotTo(HaveOccurred())
 											Expect(fname).To(ContainSubstring("pora"))
 											Expect(status).To(Equal(http.StatusOK))
 
 											responses := map[string]int{}
 											for i := 0; i < appScale*10000; i++ {
-												body, status, err := get(appURL + "/read/" + fname)
+												body, status, err := get(appURL + "/read/" + fname, printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring("Hello Persistent World"))
 												Expect(status).To(Equal(http.StatusOK))
@@ -529,7 +532,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 													break
 												}
 											}
-											body, status, err := get(appURL + "/delete/" + fname)
+											body, status, err := get(appURL + "/delete/" + fname, printErrorsOn)
 											Expect(err).NotTo(HaveOccurred())
 											Expect(body).To(ContainSubstring(fname))
 											Expect(status).To(Equal(http.StatusOK))
@@ -580,27 +583,27 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											BeforeEach(func() {
 												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-												fname, status, err = get(appURL + "/create")
+												fname, status, err = get(appURL + "/create", printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(fname).To(ContainSubstring("pora"))
 												Expect(status).To(Equal(http.StatusOK))
 											})
 											AfterEach(func() {
-												body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
+												body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname), printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring(fname))
 												Expect(status).To(Equal(http.StatusOK))
 											})
 
 											It("should be readable by the second app", func() {
-												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
+												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname), printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring("Hello Persistent World"))
 												Expect(status).To(Equal(http.StatusOK))
 											})
 
 											It("should not be deletable by the second app", func() {
-												body, status, _ := get(fmt.Sprintf("%s/delete/%s", app2URL, fname))
+												body, status, _ := get(fmt.Sprintf("%s/delete/%s", app2URL, fname), printErrorsOn)
 												Expect(body).NotTo(ContainSubstring("deleted"))
 												Expect(status).NotTo(Equal(http.StatusOK))
 											})
@@ -662,7 +665,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											BeforeEach(func() {
 												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-												body, _, _ = get(app2URL + "/create")
+												body, _, _ = get(app2URL + "/create", printErrorsOff)
 											})
 
 											It("should fail to write the file", func() {
@@ -680,20 +683,20 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											BeforeEach(func() {
 												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-												fname, status, err = get(appURL + "/create")
+												fname, status, err = get(appURL + "/create", printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(fname).To(ContainSubstring("pora"))
-												Expect(status).To(Equal(http.StatusOK))
+												Expect(status).To(Equal(http.StatusOK), fname)
 											})
 											AfterEach(func() {
-												body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname))
+												body, status, err := get(fmt.Sprintf("%s/delete/%s", appURL, fname), printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring(fname))
 												Expect(status).To(Equal(http.StatusOK))
 											})
 
 											It("should be readable by the second app", func() {
-												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname))
+												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname), printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring("Hello Persistent World"))
 												Expect(status).To(Equal(http.StatusOK))
@@ -742,7 +745,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 	})
 })
 
-func get(uri string) (body string, status int, err error) {
+func get(uri string, printErrors bool) (body string, status int, err error) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return "", status, err
@@ -752,6 +755,11 @@ func get(uri string) (body string, status int, err error) {
 	if err != nil {
 		return "", status, err
 	}
+
+	if printErrors && response.StatusCode >= http.StatusInternalServerError {
+		fmt.Println(fmt.Sprintf("Request: [[%v]]\nResponse: [[%v]]", req, response))
+	}
+
 	defer response.Body.Close()
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
