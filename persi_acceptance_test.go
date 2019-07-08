@@ -132,7 +132,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						}
 					})
 
-					// wait for async service to finish
 					Eventually(func() *Session {
 						serviceDetails := cf.Cf("service", instanceName).Wait(DEFAULT_TIMEOUT)
 						Expect(serviceDetails).To(Exit(0))
@@ -169,7 +168,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 						}
 					})
 
-					// wait for async service to finish
 					Eventually(func() *Session {
 						serviceDetails := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 						Expect(serviceDetails).To(Exit(0))
@@ -506,7 +504,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 												bindResponse := cf.Cf("scale", appName, "-i", strconv.Itoa(appScale)).Wait(LONG_TIMEOUT)
 												Expect(bindResponse).To(Exit(0))
 
-												// wait for app to scale
 												Eventually(func() int {
 													apps := cf.Cf("app", appName).Wait(DEFAULT_TIMEOUT)
 													Expect(apps).To(Exit(0))
