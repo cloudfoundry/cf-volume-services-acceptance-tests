@@ -756,13 +756,13 @@ func get(uri string, printErrors bool) (body string, status int, err error) {
 		return "", status, err
 	}
 
-	if printErrors && response.StatusCode >= http.StatusInternalServerError {
-		fmt.Println(fmt.Sprintf("Request: [[%v]]\nResponse: [[%v]]", req, response))
-	}
-
+	bodyBytes, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if printErrors && response.StatusCode >= http.StatusInternalServerError {
+		fmt.Println(fmt.Sprintf("Request: [[%v]]\nResponse: [[%v]] [[%s]]", req, response, string(bodyBytes)))
+	}
+
 	return string(bodyBytes[:]), response.StatusCode, err
 }
 
