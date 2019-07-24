@@ -1,5 +1,5 @@
 ---
   stack: windows2016
   buildpack: binary_buildpack
-  command: ./server.exe
+  command: powershell -File start.ps1
 
