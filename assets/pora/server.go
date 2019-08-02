@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-const backgroundLoadDirName = "pora-background-load"
-
 func main() {
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/env", env)
@@ -25,7 +23,6 @@ func main() {
 	http.HandleFunc("/read/", readFile)
 	http.HandleFunc("/chmod/", chmodFile)
 	http.HandleFunc("/delete/", deleteFile)
-	http.HandleFunc("/mkdir-for-background-load", mkdirForBackgroundLoad)
 	fmt.Println("listening...")
 
 	ports := os.Getenv("PORT")
@@ -40,19 +37,10 @@ func main() {
 		}(port)
 	}
 
-	if runBackgroundLoad := os.Getenv("RUN_BACKGROUND_LOAD_THREAD"); runBackgroundLoad != "" {
-		fmt.Println("starting background load thread...")
-		go backgroundLoad()
-	}
-
 	err := <-errCh
 	if err != nil {
 		panic(err)
 	}
-}
-
-type VCAPApplication struct {
-	InstanceIndex int `json:"instance_index"`
 }
 
 func hello(res http.ResponseWriter, req *http.Request) {
@@ -145,41 +133,6 @@ func dataLoad(res http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func backgroundLoad() {
-	// this method will run forever reading and writing and cleaning up data files
-	dirPath := filepath.Join(getPath(), backgroundLoadDirName)
-
-	for true {
-		if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-			fmt.Println("background load directory doesn't exist... waiting")
-			time.Sleep(10 * time.Second)
-			continue
-		}
-
-		filePath := filepath.Join(dirPath, "poraload-"+os.Getenv("INSTANCE_INDEX"))
-
-		d2 := []byte(randomString(1048576))
-		err := ioutil.WriteFile(filePath, d2, 0644)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		body, err := ioutil.ReadFile(filePath)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if string(body) != string(d2) {
-			fmt.Println("Data Mismatch!")
-			return
-		}
-
-		os.Remove(filePath)
-	}
-}
-
 func dataLoadCleanup(res http.ResponseWriter, req *http.Request) {
 	// this method will clean up any files that couldn't be deleted during load testing due to interruptions.
 	mountPointPath := getPath() + "/poraload-*"
@@ -216,19 +169,6 @@ func createFile(res http.ResponseWriter, _ *http.Request) {
 	res.WriteHeader(http.StatusOK)
 	res.Write([]byte(fileName))
 	return
-}
-
-func mkdirForBackgroundLoad(res http.ResponseWriter, _ *http.Request) {
-	dirPath := filepath.Join(getPath(), backgroundLoadDirName)
-
-	err := os.MkdirAll(dirPath, 0777)
-	if err != nil {
-		writeError(res, "Error creating directory", err)
-		return
-	}
-
-	res.WriteHeader(http.StatusOK)
-	res.Write([]byte(dirPath))
 }
 
 func readFile(res http.ResponseWriter, req *http.Request) {
