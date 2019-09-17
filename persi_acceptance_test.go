@@ -27,7 +27,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 	var (
 		appHost, readWriteAppURL, appName, instanceName string
 		bogusAppName, bogusInstanceName                 string
-		lazyUnmountAppName, lazyUnmountInstanceName     string
 	)
 
 	BeforeEach(func() {
@@ -38,10 +37,8 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 		instanceName = cfConfig.NamePrefix + "-" + instanceName + parallelNode
 		bogusInstanceName = cfConfig.NamePrefix + "-bogus-" + instanceName + parallelNode
-		lazyUnmountInstanceName = cfConfig.NamePrefix + "-lazy-" + instanceName + parallelNode
 		appName = cfConfig.NamePrefix + "-" + appName + parallelNode
 		bogusAppName = cfConfig.NamePrefix + "-bogus-" + appName + parallelNode
-		lazyUnmountAppName = cfConfig.NamePrefix + "-lazy-" + appName + parallelNode
 
 		appHost = appName + "." + cfConfig.AppsDomain
 		readWriteAppURL = "http://" + appHost
@@ -103,7 +100,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				BeforeEach(func() {
 					workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 						var (
-							createService, createBogusService, createLazyUnmountService *Session
+							createService, createBogusService *Session
 						)
 
 						if pConfig.CreateConfig == "" {
@@ -121,15 +118,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							}
 							Expect(createBogusService).To(Exit(0))
 						}
-
-						if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-							if pConfig.CreateLazyUnmountConfig == "" {
-								createLazyUnmountService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
-							} else {
-								createLazyUnmountService = cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, lazyUnmountInstanceName, "-c", pConfig.CreateLazyUnmountConfig).Wait(DEFAULT_TIMEOUT)
-							}
-							Expect(createLazyUnmountService).To(Exit(0))
-						}
 					})
 
 					Eventually(func() *Session {
@@ -145,14 +133,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 							return serviceDetails
 						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
 					}
-
-					if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-						Eventually(func() *Session {
-							serviceDetails := cf.Cf("service", lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
-							Expect(serviceDetails).To(Exit(0))
-							return serviceDetails
-						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
-					}
 				})
 
 				AfterEach(func() {
@@ -161,10 +141,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 						if os.Getenv("TEST_MOUNT_FAIL_LOGGING") == "true" {
 							cf.Cf("delete-service", bogusInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
-						}
-
-						if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-							cf.Cf("delete-service", lazyUnmountInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
 						}
 					})
 
@@ -187,18 +163,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 						workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 							cf.Cf("purge-service-instance", bogusInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
-						})
-					}
-
-					if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-						Eventually(func() *Session {
-							serviceDetails := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
-							Expect(serviceDetails).To(Exit(0))
-							return serviceDetails
-						}, LONG_TIMEOUT, POLL_INTERVAL).Should(Not(Say(lazyUnmountInstanceName)))
-
-						workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-							cf.Cf("purge-service-instance", lazyUnmountInstanceName, "-f").Wait(DEFAULT_TIMEOUT)
 						})
 					}
 				})
@@ -347,107 +311,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									Expect(body).To(ContainSubstring("Hello Persistent World"))
 									Expect(status).To(Equal(http.StatusOK))
 								})
-
-								if os.Getenv("TEST_LAZY_UNMOUNT") == "true" {
-									Context("when the remote server becomes unavailable", func() {
-										var cellId, instanceId string
-
-										BeforeEach(func() {
-											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-												appPath := os.Getenv("TEST_APPLICATION_PATH")
-												Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-
-												Eventually(cf.Cf("push", lazyUnmountAppName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-
-												if pConfig.BindLazyUnmountConfig == "" {
-													bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
-													Expect(bindResponse).To(Exit(0))
-												} else {
-													bindResponse := cf.Cf("bind-service", lazyUnmountAppName, lazyUnmountInstanceName, "-c", pConfig.BindLazyUnmountConfig).Wait(DEFAULT_TIMEOUT)
-													Expect(bindResponse).To(Exit(0))
-												}
-
-												startResponse := cf.Cf("start", lazyUnmountAppName).Wait(LONG_TIMEOUT)
-												Expect(startResponse).To(Exit(0))
-											})
-
-											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-												cellInstanceLine := "\\[CELL/0].*Cell (.*) successfully created container for instance (.*)"
-												re, err := regexp.Compile(cellInstanceLine)
-												Expect(err).NotTo(HaveOccurred())
-
-												var cfOut *Buffer
-												Eventually(func() *Buffer {
-													session := cf.Cf("logs", lazyUnmountAppName, "--recent").Wait(DEFAULT_TIMEOUT)
-													cfOut = session.Out
-													return cfOut
-												}).Should(Say(cellInstanceLine))
-
-												matches := re.FindSubmatch(cfOut.Contents())
-												Expect(matches).To(HaveLen(3))
-
-												cellId = string(matches[1])
-												instanceId = string(matches[2])
-											})
-											Expect(cellId).NotTo(BeEmpty())
-											Expect(instanceId).NotTo(BeEmpty())
-
-											By("Checking that the mounts are present (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
-											cmd := exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
-											Expect(cmdRunner(cmd)).To(Equal(0))
-										})
-
-										It("should unmount cleanly", func() {
-											By("Stopping the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit stop " + pConfig.LazyUnmountRemoteServerJobName + ")")
-											cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit stop "+pConfig.LazyUnmountRemoteServerJobName+"")
-											Expect(cmdRunner(cmd)).To(Equal(0))
-
-											By("Checking that the remote server has stopped (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /bin/pidof -s " + pConfig.LazyUnmountRemoteServerProcessName + ")")
-											Eventually(func() int {
-												cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /bin/pidof -s "+pConfig.LazyUnmountRemoteServerProcessName)
-												return cmdRunner(cmd)
-											}, 30).Should(Equal(1))
-
-											// curl the write endpoint (will block)
-											By("Curling the /write endpoint in a goroutine")
-											block := make(chan bool)
-											go func() {
-												get("http://" + lazyUnmountAppName + "." + cfConfig.AppsDomain + "/write", printErrorsOff)
-												block <- true
-											}()
-											Consistently(block, 2).ShouldNot(Receive())
-
-											By("Stopping the app")
-											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-												stopResponse := cf.Cf("stop", lazyUnmountAppName).Wait(DEFAULT_TIMEOUT)
-												Expect(stopResponse).To(Exit(0))
-											})
-
-											By("Waiting for the container to be detroyed (bosh -d cf ssh diego-cell/" + cellId + " -c cat /proc/mounts | grep -E '" + pConfig.LazyUnmountVmInstance + ".*" + instanceId + "')")
-											Eventually(func() int {
-												cmd = exec.Command("bosh", "-d", "cf", "ssh", "diego-cell/"+cellId, "-c", "cat /proc/mounts | grep -E '"+pConfig.LazyUnmountVmInstance+".*"+instanceId+"'")
-												return cmdRunner(cmd)
-											}, 30).Should(Equal(1))
-										})
-
-										AfterEach(func() {
-											By("Restarting the remote server (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit start " + pConfig.LazyUnmountRemoteServerJobName + ")")
-											cmd := exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit start "+pConfig.LazyUnmountRemoteServerJobName+"")
-											Expect(cmdRunner(cmd)).To(Equal(0))
-
-											By("Checking that the remote server is running (bosh -d cf ssh " + pConfig.LazyUnmountVmInstance + " -c sudo /var/vcap/bosh/bin/monit summary | grep " + pConfig.LazyUnmountRemoteServerJobName + " | grep running)")
-											Eventually(func() int {
-												cmd = exec.Command("bosh", "-d", "cf", "ssh", pConfig.LazyUnmountVmInstance, "-c", "sudo /var/vcap/bosh/bin/monit summary | grep "+pConfig.LazyUnmountRemoteServerJobName+" | grep running")
-												return cmdRunner(cmd)
-											}, 30).Should(Equal(0))
-
-											workflowhelpers.AsUser(patsTestSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-												cf.Cf("unbind-service", lazyUnmountAppName, lazyUnmountInstanceName).Wait(DEFAULT_TIMEOUT)
-												cf.Cf("delete", lazyUnmountAppName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
-											})
-										})
-									})
-								}
 
 								if os.Getenv("TEST_MULTI_CELL") == "true" {
 									It("should keep the data across multiple stops and starts", func() {
