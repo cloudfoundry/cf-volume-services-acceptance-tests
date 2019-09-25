@@ -62,10 +62,6 @@ func TestPersiAcceptance(t *testing.T) {
 		workflowhelpers.AsUser(patsSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			// make sure we don't have a leftover service broker from another test
 			serviceBroker.Delete()
-
-			if os.Getenv("TEST_DOCKER_PORA") == "true" {
-				Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
-			}
 		})
 
 		serviceBroker.Create()
@@ -107,10 +103,6 @@ func TestPersiAcceptance(t *testing.T) {
 		}
 	}, func() {
 		workflowhelpers.AsUser(patsSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-			if os.Getenv("TEST_DOCKER_PORA") == "true" {
-				Eventually(cf.Cf("disable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
-			}
-
 			err := serviceBroker.Delete()
 			if err != nil {
 				cf.Cf("purge-service-offering", pConfig.ServiceName).Wait(DEFAULT_TIMEOUT)
