@@ -73,6 +73,17 @@ func write(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	f, err := os.OpenFile(mountPointPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		writeError(res, "Opening file to append \n", err)
+		return
+	}
+	defer f.Close()
+	if _, err := f.WriteString("Append text!\n"); err != nil {
+		writeError(res, "Appending \n", err)
+		return
+	}
+
 	body, err := ioutil.ReadFile(mountPointPath)
 	if err != nil {
 		writeError(res, "Reading \n", err)
