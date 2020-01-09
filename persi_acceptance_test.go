@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -624,11 +623,4 @@ func get(uri string, printErrors bool) (body string, status int, err error) {
 	}
 
 	return string(bodyBytes[:]), response.StatusCode, err
-}
-
-func cmdRunner(cmd *exec.Cmd) int {
-	session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-	Eventually(session, 10).Should(Exit())
-	return session.ExitCode()
 }
