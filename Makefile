@@ -7,11 +7,10 @@ fly-nfs:
 	echo $$FLY_BUILD; \
 	fly -t persi hijack -b $$FLY_BUILD cat pats-config/pats.json > /tmp/pats-config/pats.json
 
-	BBL_STATE_DIR=bbl-state-gcp-gorgophone PARALLEL_NODES=2 TEST_MOUNT_FAIL_LOGGING=true TEST_MOUNT_OPTIONS=true TEST_MULTI_CELL=true TEST_READ_ONLY=true \
+	PARALLEL_NODES=2 TEST_MOUNT_FAIL_LOGGING=true TEST_MOUNT_OPTIONS=true TEST_MULTI_CELL=true TEST_READ_ONLY=true \
 	fly -t persi execute \
 	-c /Users/pivotal/workspace/persi-ci/scripts/ci/run-pats.build.yml \
 	-i persi-ci=/Users/pivotal/workspace/persi-ci \
-	-i director-state=/Users/pivotal/workspace/gorgophone-env \
 	-i pats-config=/tmp/pats-config \
 	-i cf-volume-services-acceptance-tests=/Users/pivotal/workspace/cf-volume-services-acceptance-tests
 
