@@ -205,7 +205,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 					})
 				}
 
-
 				for _, bindConfig := range pConfig.BindConfig {
 					Context("given an installed cf app", func() {
 						var bindConfigToUse = bindConfig
@@ -304,7 +303,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 									})
 
 									By("verifying that the app is able to write to the volume")
-									body, status, err = get(readWriteAppURL+ "/write", printErrorsOn)
+									body, status, err = get(readWriteAppURL+"/write", printErrorsOn)
 									Expect(err).NotTo(HaveOccurred())
 									Expect(body).To(ContainSubstring("Hello Persistent World"))
 									Expect(status).To(Equal(http.StatusOK))
@@ -312,7 +311,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 								if os.Getenv("TEST_MULTI_CELL") == "true" {
 									It("should keep the data across multiple stops and starts", func() {
-										fname, status, err := get(readWriteAppURL+ "/create", printErrorsOn)
+										fname, status, err := get(readWriteAppURL+"/create", printErrorsOn)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(fname).To(ContainSubstring("pora"))
 										Expect(status).To(Equal(http.StatusOK))
@@ -324,7 +323,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										for i := 0; i < 10; i++ {
 											go func() {
 												for !done {
-													get(readWriteAppURL+ "/loadtest", printErrorsOff)
+													get(readWriteAppURL+"/loadtest", printErrorsOff)
 												}
 												wg.Done()
 											}()
@@ -343,19 +342,19 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										done = true
 										wg.Wait()
 
-										body, status, err := get(readWriteAppURL+ "/read/" + fname, printErrorsOn)
+										body, status, err := get(readWriteAppURL+"/read/"+fname, printErrorsOn)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(body).To(ContainSubstring("Hello Persistent World"))
 										Expect(status).To(Equal(http.StatusOK))
 
-										body2, status, err := get(readWriteAppURL+ "/delete/" + fname, printErrorsOn)
+										body2, status, err := get(readWriteAppURL+"/delete/"+fname, printErrorsOn)
 										Expect(err).NotTo(HaveOccurred())
 										Expect(body2).To(ContainSubstring(fname))
 										Expect(status).To(Equal(http.StatusOK))
 
 										// clean up any load test files that got left behind on the mount due to apps stopping
 										// and starting
-										get(readWriteAppURL+ "/loadtestcleanup", printErrorsOn)
+										get(readWriteAppURL+"/loadtestcleanup", printErrorsOn)
 									})
 
 									Context("when the app is scaled across cells", func() {
@@ -374,14 +373,14 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 
 										It("should be able to create a test file then read it from any instance", func() {
-											fname, status, err := get(readWriteAppURL+ "/create", printErrorsOn)
+											fname, status, err := get(readWriteAppURL+"/create", printErrorsOn)
 											Expect(err).NotTo(HaveOccurred())
 											Expect(fname).To(ContainSubstring("pora"))
 											Expect(status).To(Equal(http.StatusOK))
 
 											responses := map[string]int{}
 											for i := 0; i < appScale*10000; i++ {
-												body, status, err := get(readWriteAppURL+ "/read/" + fname, printErrorsOn)
+												body, status, err := get(readWriteAppURL+"/read/"+fname, printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring("Hello Persistent World"))
 												Expect(status).To(Equal(http.StatusOK))
@@ -390,7 +389,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 													break
 												}
 											}
-											body, status, err := get(readWriteAppURL+ "/delete/" + fname, printErrorsOn)
+											body, status, err := get(readWriteAppURL+"/delete/"+fname, printErrorsOn)
 											Expect(err).NotTo(HaveOccurred())
 											Expect(body).To(ContainSubstring(fname))
 											Expect(status).To(Equal(http.StatusOK))
@@ -441,7 +440,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											BeforeEach(func() {
 												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-												fname, status, err = get(readWriteAppURL+ "/create", printErrorsOn)
+												fname, status, err = get(readWriteAppURL+"/create", printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(fname).To(ContainSubstring("pora"))
 												Expect(status).To(Equal(http.StatusOK))
@@ -453,8 +452,9 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 												Expect(status).To(Equal(http.StatusOK))
 											})
 
-											It("should be readable by the second app", func() {
+											FIt("should be readable by the second app", func() {
 												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname), printErrorsOn)
+												os.Exit(1)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring("Hello Persistent World"))
 												Expect(status).To(Equal(http.StatusOK))
@@ -493,7 +493,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 													Expect(bindResponse).To(Exit(0))
 												}
 
-
 												startResponse := cf.Cf("start", app2Name).Wait(LONG_TIMEOUT)
 												Expect(startResponse).To(Exit(0))
 											})
@@ -524,7 +523,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											BeforeEach(func() {
 												app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-												body, _, _ = get(app2URL + "/create", printErrorsOff)
+												body, _, _ = get(app2URL+"/create", printErrorsOff)
 											})
 
 											It("should fail to write the file", func() {
@@ -542,7 +541,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 											BeforeEach(func() {
 												readOnlyAppURL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
-												fname, status, err = get(readWriteAppURL+ "/create", printErrorsOn)
+												fname, status, err = get(readWriteAppURL+"/create", printErrorsOn)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(fname).To(ContainSubstring("pora"))
 												Expect(status).To(Equal(http.StatusOK), fname)
