@@ -1,3 +1,19 @@
+fly-k8s-smb: SHELL:=/bin/bash
+fly-k8s-smb:
+	mkdir -p /tmp/pats-config/
+
+	FLY_BUILD=`CF_ADMIN_PASSWORD=${CF_ADMIN_PASSWORD} APPS_DOMAIN=app.cf.ephemeral-eirini-gke-2.cf-app.com CF_API_ENDPOINT=api.app.cf.ephemeral-eirini-gke-2.cf-app.com CF_USERNAME=admin BIND_CONFIG='["{\"mount\":\"/home/vcap/data\"}"]' CREATE_BOGUS_CONFIG='' CREATE_CONFIG='{"share":"can-be-anything-for-now"}' PLAN_NAME=Existing SERVICE_NAME=SMB \
+               	fly -t persi execute -c /Users/pivotal/workspace/persi-ci/scripts/ci/generate_pats_config.build.yml -i persi-ci=/Users/pivotal/workspace/persi-ci | grep 'executing build' | awk '{print $$3}'`; \
+	echo $$FLY_BUILD; \
+	fly -t persi hijack -b $$FLY_BUILD cat pats-config/pats.json > /tmp/pats-config/pats.json
+
+	PARALLEL_NODES=2 TEST_MOUNT_FAIL_LOGGING=false TEST_MOUNT_OPTIONS=false TEST_MULTI_CELL=false TEST_READ_ONLY=false \
+	fly -t persi execute \
+	-c /Users/pivotal/workspace/persi-ci/scripts/ci/run-pats.build.yml \
+	-i persi-ci=/Users/pivotal/workspace/persi-ci \
+	-i pats-config=/tmp/pats-config \
+	-i cf-volume-services-acceptance-tests=/Users/pivotal/workspace/cf-volume-services-acceptance-tests
+
 fly-nfs: SHELL:=/bin/bash
 fly-nfs:
 	mkdir -p /tmp/pats-config/
