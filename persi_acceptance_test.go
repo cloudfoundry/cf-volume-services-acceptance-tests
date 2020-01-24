@@ -452,9 +452,8 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 												Expect(status).To(Equal(http.StatusOK))
 											})
 
-											FIt("should be readable by the second app", func() {
+											It("should be readable by the second app", func() {
 												body, status, err := get(fmt.Sprintf("%s/read/%s", app2URL, fname), printErrorsOn)
-												os.Exit(1)
 												Expect(err).NotTo(HaveOccurred())
 												Expect(body).To(ContainSubstring("Hello Persistent World"))
 												Expect(status).To(Equal(http.StatusOK))

@@ -1,6 +1,6 @@
 fly-k8s-smb: SHELL:=/bin/bash
 fly-k8s-smb:
-	PARALLEL_NODES=2 TEST_MOUNT_FAIL_LOGGING=false TEST_MOUNT_OPTIONS=true TEST_MULTI_CELL=false TEST_READ_ONLY=true \
+	PARALLEL_NODES=2 TEST_MOUNT_FAIL_LOGGING=false TEST_MOUNT_OPTIONS=false TEST_MULTI_CELL=false TEST_READ_ONLY=false \
 	fly -t persi execute \
 	-c /Users/pivotal/workspace/persi-ci/scripts/ci/run-pats.build.yml \
 	-i persi-ci=/Users/pivotal/workspace/persi-ci \
