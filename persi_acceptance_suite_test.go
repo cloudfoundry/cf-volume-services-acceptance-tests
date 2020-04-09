@@ -95,6 +95,14 @@ func TestPersiAcceptance(t *testing.T) {
 				Eventually(cf.Cf("set-org-default-isolation-segment", patsTestSetup.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
 			})
 		}
+		if val, found := os.LookupEnv("TEST_DOCKER_PORA"); found {
+			dockerEnabled, err := strconv.ParseBool(val)
+			Expect(err).NotTo(HaveOccurred())
+
+			if dockerEnabled {
+				Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
+			}
+		}
 	})
 
 	SynchronizedAfterSuite(func() {
