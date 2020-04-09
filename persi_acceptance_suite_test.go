@@ -100,7 +100,9 @@ func TestPersiAcceptance(t *testing.T) {
 			Expect(err).NotTo(HaveOccurred())
 
 			if dockerEnabled {
-				Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
+				workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
+					Eventually(cf.Cf("enable-feature-flag", "diego_docker"), DEFAULT_TIMEOUT).Should(Exit(0))
+				})
 			}
 		}
 	})
