@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -57,6 +58,10 @@ func TestPersiAcceptance(t *testing.T) {
 	maxParallelSetup := 5
 
 	SynchronizedBeforeSuite(func() []byte {
+		src := rand.NewSource(GinkgoRandomSeed())
+		prefix := strconv.Itoa(rand.New(src).Int())
+		cfConfig.NamePrefix = prefix
+
 		patsSuiteSetup = workflowhelpers.NewTestSuiteSetup(cfConfig)
 
 		workflowhelpers.AsUser(patsSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
