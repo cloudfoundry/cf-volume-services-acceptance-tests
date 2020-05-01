@@ -59,7 +59,7 @@ func TestPersiAcceptance(t *testing.T) {
 
 	SynchronizedBeforeSuite(func() []byte {
 		src := rand.NewSource(GinkgoRandomSeed())
-		prefix := strconv.Itoa(rand.New(src).Int())
+		prefix := strconv.Itoa(rand.New(src).Intn(1000))
 		cfConfig.NamePrefix = prefix
 
 		patsSuiteSetup = workflowhelpers.NewTestSuiteSetup(cfConfig)
