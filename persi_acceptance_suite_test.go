@@ -58,10 +58,6 @@ func TestPersiAcceptance(t *testing.T) {
 	maxParallelSetup := 5
 
 	SynchronizedBeforeSuite(func() []byte {
-		src := rand.NewSource(GinkgoRandomSeed())
-		prefix := strconv.Itoa(rand.New(src).Intn(1000))
-		cfConfig.NamePrefix = prefix
-
 		patsSuiteSetup = workflowhelpers.NewTestSuiteSetup(cfConfig)
 
 		workflowhelpers.AsUser(patsSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
@@ -82,6 +78,10 @@ func TestPersiAcceptance(t *testing.T) {
 
 		return []byte(lockFilePath)
 	}, func(path []byte) {
+		src := rand.NewSource(GinkgoRandomSeed())
+		prefix := strconv.Itoa(rand.New(src).Intn(1000))
+		cfConfig.NamePrefix = prefix
+
 		lockFilePath := string(path)
 
 		// rate limit spec setup to do no more than maxParallelSetup creates in parallel, so that CF doesn't get upset and time out on UAA calls
