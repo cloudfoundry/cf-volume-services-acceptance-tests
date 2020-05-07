@@ -78,7 +78,7 @@ func TestPersiAcceptance(t *testing.T) {
 
 		return []byte(lockFilePath)
 	}, func(path []byte) {
-		src := rand.NewSource(GinkgoRandomSeed())
+		src := rand.NewSource(time.Now().UnixNano())
 		prefix := strconv.Itoa(rand.New(src).Intn(1000))
 		cfConfig.NamePrefix = prefix
 
