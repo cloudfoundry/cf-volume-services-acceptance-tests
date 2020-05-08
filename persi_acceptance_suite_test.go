@@ -95,13 +95,6 @@ func TestPersiAcceptance(t *testing.T) {
 		patsTestSetup = workflowhelpers.NewTestSuiteSetup(cfConfig)
 
 		patsTestSetup.Setup()
-		if pConfig.IsolationSegment != "" {
-			workflowhelpers.AsUser(patsTestSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-				Eventually(cf.Cf("create-isolation-segment", pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("enable-org-isolation", patsTestSetup.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
-				Eventually(cf.Cf("set-org-default-isolation-segment", patsTestSetup.RegularUserContext().Org, pConfig.IsolationSegment), DEFAULT_TIMEOUT).Should(Exit(0))
-			})
-		}
 		if val, found := os.LookupEnv("TEST_DOCKER_PORA"); found {
 			dockerEnabled, err := strconv.ParseBool(val)
 			Expect(err).NotTo(HaveOccurred())
@@ -157,7 +150,6 @@ type patsConfig struct {
 	BindConfig                         []string `json:"bind_config"`
 	BindBogusConfig                    string `json:"bind_bogus_config"`
 	BindLazyUnmountConfig              string `json:"bind_lazy_unmount_config"`
-	IsolationSegment                   string `json:"isolation_segment"`
 	DisallowedLdapBindConfig           string `json:"disallowed_ldap_bind_config"`
 	DisallowedOverrideBindConfig       string `json:"disallowed_override_bind_config"`
 }
