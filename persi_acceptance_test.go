@@ -223,13 +223,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 								} else {
 									appPath = os.Getenv("TEST_APPLICATION_PATH")
 									Expect(appPath).To(BeADirectory(), "TEST_APPLICATION_PATH environment variable should point to a CF application")
-
-									if os.Getenv("TEST_WINDOWS_CELL") == "true" {
-										appPathToUse := fmt.Sprintf("%s-%s", appPath, "windows")
-										Eventually(cf.Cf("push", appName, "-s", "windows2016", "-p", appPathToUse, "-f", appPathToUse+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-									} else {
-										Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
-									}
+									Eventually(cf.Cf("push", appName, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
 								}
 
 								if bindConfigToUse == "" {

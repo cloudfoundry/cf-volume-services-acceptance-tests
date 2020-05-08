@@ -1,5 +1,0 @@
----
-  stack: windows2016
-  buildpack: binary_buildpack
-  command: powershell -File start.ps1
-
