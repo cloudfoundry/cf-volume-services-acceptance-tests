@@ -42,6 +42,8 @@ var (
 func TestPersiAcceptance(t *testing.T) {
 	RegisterFailHandler(Fail)
 
+	SetDefaultEventuallyTimeout(5 * time.Second)
+
 	serviceBroker := &broker{
 		Name:     pConfig.ServiceName + "-broker",
 		User:     pConfig.BrokerUser,
