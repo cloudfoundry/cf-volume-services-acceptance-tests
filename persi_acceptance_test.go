@@ -13,7 +13,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
@@ -647,7 +647,7 @@ func eventuallyExpect(endpoint string, expectedSubstring string) string {
 		_, status, err := get(endpoint, printErrorsOn)
 		Expect(err).NotTo(HaveOccurred())
 		return status
-	}, 5 * time.Second, 1 * time.Second).Should(Equal(http.StatusOK))
+	}, 5*time.Second, 1*time.Second).Should(Equal(http.StatusOK))
 
 	var body string
 	Eventually(func() string {
@@ -655,7 +655,7 @@ func eventuallyExpect(endpoint string, expectedSubstring string) string {
 		body, _, err = get(endpoint, printErrorsOn)
 		Expect(err).NotTo(HaveOccurred())
 		return body
-	}, 5 * time.Second, 1 * time.Second).Should(ContainSubstring(expectedSubstring))
+	}, 5*time.Second, 1*time.Second).Should(ContainSubstring(expectedSubstring))
 
 	return body
 }
