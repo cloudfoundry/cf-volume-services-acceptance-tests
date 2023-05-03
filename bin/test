@@ -39,4 +39,4 @@ Using $(ginkgo version)
 EOT
 
 set -e
-ginkgo "$@"
+go run github.com/onsi/ginkgo/v2/ginkgo "$@"

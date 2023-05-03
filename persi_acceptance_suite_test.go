@@ -12,18 +12,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zbiljic/go-filelock"
-
-	. "github.com/onsi/ginkgo"
-	ginkgoconfig "github.com/onsi/ginkgo/config"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gbytes"
-	. "github.com/onsi/gomega/gexec"
-
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/config"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gbytes"
+	. "github.com/onsi/gomega/gexec"
+	"github.com/zbiljic/go-filelock"
 )
 
 var (
@@ -87,7 +84,7 @@ func TestPersiAcceptance(t *testing.T) {
 		lockFilePath := string(path)
 
 		// rate limit spec setup to do no more than maxParallelSetup creates in parallel, so that CF doesn't get upset and time out on UAA calls
-		fl, err := filelock.New(lockFilePath + strconv.Itoa(ginkgoconfig.GinkgoConfig.ParallelNode%maxParallelSetup))
+		fl, err := filelock.New(lockFilePath + strconv.Itoa(GinkgoParallelProcess()%maxParallelSetup))
 		Expect(err).ToNot(HaveOccurred())
 		fl.Must().Lock()
 		defer fl.Must().Unlock()
@@ -136,24 +133,23 @@ func defaults(config *config.Config) {
 }
 
 type patsConfig struct {
-	ServiceName                        string `json:"service_name"`
-	PlanName                           string `json:"plan_name"`
-	BrokerUrl                          string `json:"broker_url"`
-	BrokerUser                         string `json:"broker_user"`
-	BrokerPassword                     string `json:"broker_password"`
-	CreateConfig                       string `json:"create_config"`
-	CreateBogusConfig                  string `json:"create_bogus_config"`
-	CreateLazyUnmountConfig            string `json:"create_lazy_unmount_config"`
-	LazyUnmountVmInstance              string `json:"lazy_unmount_vm_instance"`
-	LazyUnmountRemoteServerJobName     string `json:"lazy_unmount_remote_server_job_name"`
-	LazyUnmountRemoteServerProcessName string `json:"lazy_unmount_remote_server_process_name"`
+	ServiceName                        string   `json:"service_name"`
+	PlanName                           string   `json:"plan_name"`
+	BrokerUrl                          string   `json:"broker_url"`
+	BrokerUser                         string   `json:"broker_user"`
+	BrokerPassword                     string   `json:"broker_password"`
+	CreateConfig                       string   `json:"create_config"`
+	CreateBogusConfig                  string   `json:"create_bogus_config"`
+	CreateLazyUnmountConfig            string   `json:"create_lazy_unmount_config"`
+	LazyUnmountVmInstance              string   `json:"lazy_unmount_vm_instance"`
+	LazyUnmountRemoteServerJobName     string   `json:"lazy_unmount_remote_server_job_name"`
+	LazyUnmountRemoteServerProcessName string   `json:"lazy_unmount_remote_server_process_name"`
 	BindConfig                         []string `json:"bind_config"`
-	BindBogusConfig                    string `json:"bind_bogus_config"`
-	BindLazyUnmountConfig              string `json:"bind_lazy_unmount_config"`
-	DisallowedLdapBindConfig           string `json:"disallowed_ldap_bind_config"`
-	DisallowedOverrideBindConfig       string `json:"disallowed_override_bind_config"`
+	BindBogusConfig                    string   `json:"bind_bogus_config"`
+	BindLazyUnmountConfig              string   `json:"bind_lazy_unmount_config"`
+	DisallowedLdapBindConfig           string   `json:"disallowed_ldap_bind_config"`
+	DisallowedOverrideBindConfig       string   `json:"disallowed_override_bind_config"`
 }
-
 
 func getPatsSpecificConfig() patsConfig {
 	configFile, err := os.Open(config.ConfigPath())
@@ -179,7 +175,6 @@ func loadConfigAndDefaultValues() *config.Config {
 	defaults(config)
 	return config
 }
-
 
 type broker struct {
 	Name     string
