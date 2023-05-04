@@ -14,7 +14,6 @@ import (
 
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 	"github.com/cloudfoundry/cf-test-helpers/v2/config"
-	"github.com/cloudfoundry/cf-test-helpers/v2/helpers"
 	"github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -53,7 +52,6 @@ func TestPersiAcceptance(t *testing.T) {
 	}
 
 	componentName := "PATS Suite"
-	rs := []Reporter{}
 	maxParallelSetup := 5
 
 	SynchronizedBeforeSuite(func() []byte {
@@ -118,12 +116,7 @@ func TestPersiAcceptance(t *testing.T) {
 		})
 	})
 
-	if cfConfig.ArtifactsDirectory != "" {
-		helpers.EnableCFTrace(cfConfig, componentName)
-		rs = append(rs, helpers.NewJUnitReporter(cfConfig, componentName))
-	}
-
-	RunSpecs(t, componentName, rs)
+	RunSpecs(t, componentName)
 }
 
 func defaults(config *config.Config) {
