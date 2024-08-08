@@ -1,6 +1,6 @@
 module persi_acceptance_test
 
-go 1.20
+go 1.22
 
 require (
 	github.com/cloudfoundry/cf-test-helpers/v2 v2.5.0

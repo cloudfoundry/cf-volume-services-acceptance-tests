@@ -3,7 +3,6 @@ package persi_acceptance_tests_test
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -64,13 +63,13 @@ func TestPersiAcceptance(t *testing.T) {
 
 		serviceBroker.Create()
 
-		lockFilePath, err := ioutil.TempDir("", "pats-setup-lock")
+		lockFilePath, err := os.MkdirTemp("", "pats-setup-lock")
 		Expect(err).ToNot(HaveOccurred())
 		lockFilePath = filepath.Join(lockFilePath, "lock-")
 
 		for i := 0; i < maxParallelSetup; i++ {
 			d1 := []byte("this is a lock file")
-			ioutil.WriteFile(lockFilePath+strconv.Itoa(i), d1, 0644)
+			os.WriteFile(lockFilePath+strconv.Itoa(i), d1, 0644)
 		}
 
 		return []byte(lockFilePath)

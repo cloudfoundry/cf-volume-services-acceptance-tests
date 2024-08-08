@@ -3,7 +3,7 @@ package persi_acceptance_tests_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -632,11 +632,11 @@ func get(uri string, printErrors bool) (body string, status int, err error) {
 		return "", status, err
 	}
 
-	bodyBytes, err := ioutil.ReadAll(response.Body)
+	bodyBytes, err := io.ReadAll(response.Body)
 	defer response.Body.Close()
 
 	if printErrors && response.StatusCode >= http.StatusInternalServerError {
-		fmt.Println(fmt.Sprintf("Request: [[%v]]\nResponse: [[%v]] [[%s]]", req, response, string(bodyBytes)))
+		fmt.Printf("Request: [[%v]]\nResponse: [[%v]] [[%s]]\n", req, response, string(bodyBytes))
 	}
 
 	return string(bodyBytes[:]), response.StatusCode, err
