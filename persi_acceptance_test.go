@@ -29,7 +29,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 	)
 
 	BeforeEach(func() {
-		parallelNode := strconv.Itoa(GinkgoParallelNode())
+		parallelNode := strconv.Itoa(GinkgoParallelProcess())
 
 		instanceName = "pats-volume-instance"
 		appName = "pats-pora"
