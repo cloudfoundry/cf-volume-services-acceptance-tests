@@ -372,7 +372,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 									})
 								}
-								if os.Getenv("TEST_MOUNT_OPTIONS") == "true" {
+								if os.Getenv("TEST_MOUNT_OPTIONS") == "true" { //this is only valid for ldap and NFS volume release. For smb we set this to false
 									Context("when a second app is bound with a different uid and gid", func() {
 										var (
 											app2Name string
