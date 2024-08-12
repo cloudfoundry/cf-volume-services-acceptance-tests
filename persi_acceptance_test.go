@@ -308,14 +308,20 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										fname := eventuallyExpect(readWriteAppURL+"/create", "pora")
 										// start a bunch of simultaneous requests to do file io
 										var wg sync.WaitGroup
-										var done bool
+										stop := make(chan bool)
 										wg.Add(10)
 										for i := 0; i < 10; i++ {
 											go func() {
-												for !done {
+												defer wg.Done()
+												for {
 													get(readWriteAppURL+"/loadtest", printErrorsOff)
+													time.Sleep(100 * time.Millisecond)
+													select {
+													case <-stop:
+														return
+													default:
+													}
 												}
-												wg.Done()
 											}()
 										}
 
@@ -329,7 +335,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 										})
 
 										// signal our background load to stop and then wait for it
-										done = true
+										close(stop)
 										wg.Wait()
 
 										eventuallyExpect(readWriteAppURL+"/read/"+fname, "Hello Persistent World")
