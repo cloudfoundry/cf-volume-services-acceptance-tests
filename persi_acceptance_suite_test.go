@@ -22,8 +22,6 @@ var (
 
 	appPath       string
 	brokerName    string
-	appName       string
-	instanceName  string
 	testValues    persiTestValues
 	nfsTestValues = persiTestValues{
 		validCreateServiceConfig:            `{"share": "nfstestserver.service.cf.internal/export/users"}`,
@@ -73,7 +71,6 @@ var _ = BeforeSuite(func() {
 	if pConfig.ServiceName == "nfs" {
 		testValues = nfsTestValues
 	}
-	return
 })
 
 var _ = AfterSuite(func() {
