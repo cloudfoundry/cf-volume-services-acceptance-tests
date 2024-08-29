@@ -26,6 +26,9 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38
 ## explicit; go 1.14
 github.com/google/pprof/profile
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
 # github.com/onsi/ginkgo/v2 v2.9.2
 ## explicit; go 1.18
 github.com/onsi/ginkgo/v2
@@ -62,9 +65,6 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/zbiljic/go-filelock v0.0.0-20170914061330-1dbf7103ab7d
-## explicit
-github.com/zbiljic/go-filelock
 # golang.org/x/net v0.8.0
 ## explicit; go 1.17
 golang.org/x/net/context

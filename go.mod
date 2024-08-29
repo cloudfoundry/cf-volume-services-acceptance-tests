@@ -4,9 +4,9 @@ go 1.22
 
 require (
 	github.com/cloudfoundry/cf-test-helpers/v2 v2.5.0
+	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.6
-	github.com/zbiljic/go-filelock v0.0.0-20170914061330-1dbf7103ab7d
 )
 
 require (
