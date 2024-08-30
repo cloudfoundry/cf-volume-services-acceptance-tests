@@ -40,7 +40,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 			createService(instanceName, testValues.validCreateServiceConfig)
 
 			By("Binding the service to the app")
-			bindAppToService(appName, instanceName, testValues.validBindConfig)
+			bindAppToService(appName, instanceName, testValues.validBindConfigs[0])
 
 			By("Starting the app")
 			startApp(appName)

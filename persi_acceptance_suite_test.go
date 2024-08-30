@@ -23,9 +23,9 @@ var (
 	appPath       string
 	brokerName    string
 	testValues    persiTestValues
+	smbTestValues = persiTestValues{}
 	nfsTestValues = persiTestValues{
 		validCreateServiceConfig:            `{"share": "nfstestserver.service.cf.internal/export/users"}`,
-		validBindConfig:                     `{"gid": "1000", "uid": "1000"}`,
 		secondAppValidBindConfig:            `{"uid":"5000","gid":"5000"}`,
 		bindConfigWithInvalidKeys:           `{"domain":"foo"}`,
 		bindConfigWithInvalidKeysFailure:    "Service broker error: - Not allowed options: domain",
@@ -39,12 +39,26 @@ var (
 			`{"uid": "1000", "gid": "1000", "version": "4.2"}`,
 		},
 	}
+	nfsLDAPTestValues = persiTestValues{
+		validCreateServiceConfig:            `{"share": "nfstestldapserver.service.cf.internal/export/users"}`,
+		secondAppValidBindConfig:            `{"username": "user2000", "password": "secret"}`, // added this user manually
+		bindConfigWithInvalidKeys:           `{"domain":"foo"}`,
+		bindConfigWithInvalidKeysFailure:    "Service broker error: - Not allowed options: domain",
+		createServiceConfigWithInvalidShare: `{"share": "nfstestldapserver.service.cf.internal/meow-meow-this-doesnt-exist", "username": "1000", "password": "secret"}`,
+		validBindConfigs: []string{
+			`{"username": "user1000", "password": "secret"}`,
+			`{"username": "user1000", "password": "secret", "mount": "/var/vcap/data/foo"}`,
+			`{"username": "user1000", "password": "secret", "version": "3"}`,
+			`{"username": "user1000", "password": "secret", "version": "4.0"}`,
+			`{"username": "user1000", "password": "secret", "version": "4.1"}`,
+			`{"username": "user1000", "password": "secret", "version": "4.2"}`,
+		},
+	}
 )
 
 type persiTestValues struct {
 	validCreateServiceConfig            string
 	createServiceConfigWithInvalidShare string
-	validBindConfig                     string
 	validBindConfigs                    []string
 	bindConfigWithInvalidKeys           string
 	bindConfigWithInvalidKeysFailure    string
@@ -68,8 +82,14 @@ var _ = BeforeSuite(func() {
 	cfTestSuiteSetup.Setup()
 	brokerName = pConfig.ServiceName + "broker"
 	appPath = "assets/pora"
-	if pConfig.ServiceName == "nfs" {
+	if pConfig.ServiceName == "nfs" && pConfig.IsLDAP {
+		testValues = nfsLDAPTestValues
+	} else if pConfig.ServiceName == "nfs" {
 		testValues = nfsTestValues
+	} else if pConfig.ServiceName == "smb" {
+		testValues = smbTestValues
+	} else {
+		Expect(pConfig.ServiceName).To(BeElementOf([]string{"nfs", "smb"}))
 	}
 })
 

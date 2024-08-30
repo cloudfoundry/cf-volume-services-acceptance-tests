@@ -45,19 +45,6 @@ var _ = Describe("Invalid Configs", func() {
 		})
 
 		It("fails to bind", func() {
-			// TODO use these values when setting up the other things
-			// var expectedError, bindConfigToUse string
-			// if pConfig.ServiceName == "smb" {
-			// 	bindConfigToUse = `{"uid":"1000","gid":"1000"}`
-			// 	expectedError = "Service broker error: - Not allowed options: gid, uid"
-			// } else if pConfig.ServiceName == "nfs" {
-			// 	bindConfigToUse = `{"domain":"foo"}`
-			// 	expectedError = "Service broker error: - Not allowed options: domain"
-			// } else {
-			// 	Expect([]string{"nfs", "smb"}).To(ContainElement(pConfig.ServiceName))
-			// }
-
-			// var bindResponse *gexec.Session
 			workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 				bindResponse := cf.Cf("bind-service", appName, instanceName, "-c", testValues.bindConfigWithInvalidKeys).Wait(DEFAULT_TIMEOUT)
 				Expect(bindResponse).NotTo(Exit(0))
@@ -73,7 +60,7 @@ var _ = Describe("Invalid Configs", func() {
 			createService(instanceName, testValues.createServiceConfigWithInvalidShare)
 
 			By("Binding the service to the app")
-			bindAppToService(appName, instanceName, testValues.validBindConfig)
+			bindAppToService(appName, instanceName, testValues.validBindConfigs[0])
 		})
 
 		It("fails to start", func() {

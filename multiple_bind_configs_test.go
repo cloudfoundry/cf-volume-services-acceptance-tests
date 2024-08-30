@@ -46,7 +46,7 @@ var _ = Describe("Multiple bind configs", func() {
 
 		for _, config := range validBindConfigs {
 			By(fmt.Sprintf("Binding the service using config: %s", config))
-			bindAppToService(appName, instanceName, testValues.validBindConfig)
+			bindAppToService(appName, instanceName, config)
 			startApp(appName)
 			eventuallyExpect(readWriteAppURL+"/write", "Hello Persistent World")
 			stopApp(appName)

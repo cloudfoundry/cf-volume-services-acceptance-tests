@@ -38,6 +38,7 @@ type Config struct {
 	PlanName                string `json:"plan_name"`
 	IncludeIsolationSegment bool   `json:"include_isolation_segment"`
 	IncludeMultiCell        bool   `json:"include_multi_cell"`
+	IsLDAP                  bool   `json:"is_ldap"`
 	Valid                   struct {
 		CreateService CreateServiceConfig `json:"create_service"`
 		BindServices  []BindServiceConfig `json:"bind_services"`

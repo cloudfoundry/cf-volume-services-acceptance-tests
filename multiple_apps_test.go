@@ -39,7 +39,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 			createService(instanceName, testValues.validCreateServiceConfig)
 
 			By("Binding the service to the first app")
-			bindAppToService(appName, instanceName, testValues.validBindConfig)
+			bindAppToService(appName, instanceName, testValues.validBindConfigs[0])
 
 			By("Starting the first app")
 			startApp(appName)
@@ -51,6 +51,8 @@ var _ = Describe("multiple apps uses volume services", func() {
 		AfterEach(func() {
 			eventuallyExpect(fmt.Sprintf("%s/delete/%s", readWriteAppURL, fname), fname)
 			workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+				cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
+				cf.Cf("logs", app2Name, "--recent").Wait(DEFAULT_TIMEOUT)
 				cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 				cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
 				cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
@@ -98,7 +100,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 			createService(instanceName, testValues.validCreateServiceConfig)
 
 			By("Binding the service to the first app")
-			bindAppToService(appName, instanceName, testValues.validBindConfig)
+			bindAppToService(appName, instanceName, testValues.validBindConfigs[0])
 
 			By("Starting the first app")
 			startApp(appName)
@@ -110,6 +112,8 @@ var _ = Describe("multiple apps uses volume services", func() {
 		AfterEach(func() {
 			eventuallyExpect(fmt.Sprintf("%s/delete/%s", readWriteAppURL, fname), fname)
 			workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+				cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
+				cf.Cf("logs", app2Name, "--recent").Wait(DEFAULT_TIMEOUT)
 				cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
 				cf.Cf("unbind-service", app2Name, instanceName).Wait(DEFAULT_TIMEOUT)
 				cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
@@ -125,7 +129,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 				pushPoraNoStart(app2Name, testDocker)
 
 				By("Binding the service to the 2nd app")
-				readOnlyBindConfig := strings.Replace(testValues.validBindConfig, "}", `,"readonly":true}`, 1)
+				readOnlyBindConfig := strings.Replace(testValues.validBindConfigs[0], "}", `,"readonly":true}`, 1)
 				bindAppToService(app2Name, instanceName, readOnlyBindConfig)
 
 				By("Starting the 2nd app")
