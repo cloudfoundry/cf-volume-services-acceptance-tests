@@ -39,6 +39,8 @@ type Config struct {
 	IncludeIsolationSegment bool   `json:"include_isolation_segment"`
 	IncludeMultiCell        bool   `json:"include_multi_cell"`
 	IsLDAP                  bool   `json:"is_ldap"`
+	Username                string `json:"username"`
+	Password                string `json:"password"`
 	Valid                   struct {
 		CreateService CreateServiceConfig `json:"create_service"`
 		BindServices  []BindServiceConfig `json:"bind_services"`

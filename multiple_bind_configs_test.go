@@ -17,7 +17,7 @@ var _ = Describe("Multiple bind configs", func() {
 
 	BeforeEach(func() {
 		validBindConfigs = testValues.validBindConfigs
-		Expect(validBindConfigs).To(HaveLen(6)) // hardcoded value for nfs
+		Expect(len(validBindConfigs)).To(BeNumerically(">", 1))
 
 		instanceName, appName, readWriteAppURL = generateTestNames()
 
