@@ -6,10 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 	"github.com/cloudfoundry/cf-test-helpers/v2/config"
 	"github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var (
@@ -115,6 +117,19 @@ var _ = BeforeSuite(func() {
 	} else {
 		Expect(pConfig.ServiceName).To(BeElementOf([]string{"nfs-ldap", "nfs", "smb"}))
 	}
+
+	if pConfig.IncludeIsolationSegment {
+		org := cfTestSuiteSetup.RegularUserContext().Org
+		isolationSegment := "persistent_isolation_segment"
+		workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+			enableIso := cf.Cf("enable-org-isolation", org, isolationSegment).Wait(DEFAULT_TIMEOUT)
+			Expect(enableIso).To(Exit(0))
+
+			defaultIso := cf.Cf("set-org-default-isolation-segment", org, isolationSegment).Wait(DEFAULT_TIMEOUT)
+			Expect(defaultIso).To(Exit(0))
+		})
+	}
+
 })
 
 var _ = AfterSuite(func() {
