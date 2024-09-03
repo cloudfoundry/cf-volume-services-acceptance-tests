@@ -21,7 +21,7 @@ var _ = Describe("Multiple bind configs", func() {
 
 		instanceName, appName, readWriteAppURL = generateTestNames()
 
-		By("Enabling serivice-access")
+		By("Enabling service-access")
 		enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
 
 		By("Pushing the first app")

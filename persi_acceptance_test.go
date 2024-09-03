@@ -85,26 +85,23 @@ func pushPoraNoStart(a string, dockerApp bool) {
 }
 
 func createService(s, c string) {
-	Eventually(func() *Session {
-		createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, s, "-c", c).Wait(DEFAULT_TIMEOUT)
-		Expect(createService).To(Exit(0))
+	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+		Eventually(func() *Session {
+			createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, s, "-c", c).Wait(DEFAULT_TIMEOUT)
+			Expect(createService).To(Exit(0))
 
-		serviceDetails := cf.Cf("service", s).Wait(DEFAULT_TIMEOUT)
-		Expect(serviceDetails).To(Exit(0))
-		return serviceDetails
-	}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
+			serviceDetails := cf.Cf("service", s).Wait(DEFAULT_TIMEOUT)
+			Expect(serviceDetails).To(Exit(0))
+			return serviceDetails
+		}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
+	})
 }
 
 func bindAppToService(a, s, c string) {
-	// if bindConfigToUse == "" {
-	// 	bindResponse := cf.Cf("bind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
-	// 	Expect(bindResponse).To(Exit(0))
-	// } else {
-	bindResponse := cf.Cf("bind-service", a, s, "-c", c).Wait(DEFAULT_TIMEOUT)
-	Expect(bindResponse).To(Exit(0))
-	// }
-
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+		bindResponse := cf.Cf("bind-service", a, s, "-c", c).Wait(DEFAULT_TIMEOUT)
+		Expect(bindResponse).To(Exit(0))
+
 		services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 		Expect(services).To(Exit(0))
 		Expect(services).To(Say(s + "[^\\n]+" + pConfig.ServiceName + "[^\\n]+" + a))

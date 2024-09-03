@@ -29,7 +29,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 				Skip("skip when using smb")
 			}
 
-			By("Enabling serivice-access")
+			By("Enabling service-access")
 			enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
 
 			By("Pushing the first app")
@@ -89,7 +89,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 
 	Context("when a second app is bound with a readonly mount", func() {
 		BeforeEach(func() {
-			By("Enabling serivice-access")
+			By("Enabling service-access")
 			enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
 
 			By("Pushing the first app")

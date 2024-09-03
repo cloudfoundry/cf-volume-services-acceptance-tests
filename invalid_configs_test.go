@@ -17,7 +17,7 @@ var _ = Describe("Invalid Configs", func() {
 	BeforeEach(func() {
 		instanceName, appName, _ = generateTestNames()
 
-		By("Enabling serivice-access")
+		By("Enabling service-access")
 		enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
 
 		By("Pushing an app")

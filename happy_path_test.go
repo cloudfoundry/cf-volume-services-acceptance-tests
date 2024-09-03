@@ -34,7 +34,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 				Skip("don't run docker tests with smb")
 			}
 
-			By("Enabling serivice-access")
+			By("Enabling service-access")
 			enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
 
 			By("Pushing an app")
