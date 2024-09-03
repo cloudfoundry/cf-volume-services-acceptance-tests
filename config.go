@@ -2,36 +2,10 @@ package persi_acceptance
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/cloudfoundry/cf-test-helpers/v2/config"
 )
-
-type BindServiceConfig struct {
-	Uid      string `json:"uid,omitempty"`
-	Gid      string `json:"gid,omitempty"`
-	Mount    string `json:"mount,omitempty"`
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	Domain   string `json:"domain,omitempty"`
-	Version  string `json:"version,omitempty"`
-}
-type CreateServiceConfig struct {
-	Share string `json:"share"`
-}
-
-func (c CreateServiceConfig) Config() string {
-	return fmt.Sprintf(`{"share": "%s"}`, c.Share)
-}
-
-func (c BindServiceConfig) Config() (string, error) {
-	bytes, err := json.Marshal(c)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
-}
 
 type Config struct {
 	ServiceName             string `json:"service_name"`
@@ -41,14 +15,6 @@ type Config struct {
 	IsLDAP                  bool   `json:"is_ldap"`
 	Username                string `json:"username"`
 	Password                string `json:"password"`
-	Valid                   struct {
-		CreateService CreateServiceConfig `json:"create_service"`
-		BindServices  []BindServiceConfig `json:"bind_services"`
-	} `json:"valid"`
-	Invalid struct {
-		CreateService CreateServiceConfig `json:"create_service"`
-		BindService   BindServiceConfig   `json:"bind_service"`
-	} `json:"invalid"`
 }
 
 func LoadConfig() (Config, error) {
