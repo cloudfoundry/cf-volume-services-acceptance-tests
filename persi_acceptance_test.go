@@ -44,7 +44,7 @@ func get(uri string, printErrors bool) (body string, status int, err error) {
 }
 
 func eventuallyExpect(endpoint string, expectedSubstring string) string {
-	Eventually(func() int {
+	EventuallyWithOffset(1, func() int {
 		_, status, err := get(endpoint, printErrorsOn)
 		Expect(err).NotTo(HaveOccurred())
 		return status
