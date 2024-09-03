@@ -106,14 +106,14 @@ var _ = BeforeSuite(func() {
 		},
 	}
 
-	if pConfig.ServiceName == "nfs" && pConfig.IsLDAP {
+	if pConfig.ServiceName == "nfs-ldap" {
 		testValues = nfsLDAPTestValues
 	} else if pConfig.ServiceName == "nfs" {
 		testValues = nfsTestValues
 	} else if pConfig.ServiceName == "smb" {
 		testValues = smbTestValues
 	} else {
-		Expect(pConfig.ServiceName).To(BeElementOf([]string{"nfs", "smb"}))
+		Expect(pConfig.ServiceName).To(BeElementOf([]string{"nfs-ldap", "nfs", "smb"}))
 	}
 })
 

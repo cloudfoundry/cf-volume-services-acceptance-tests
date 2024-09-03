@@ -25,7 +25,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 
 	Context("when a second app is bound with a different uid and gid", func() {
 		BeforeEach(func() {
-			if pConfig.ServiceName != "nfs" {
+			if pConfig.ServiceName == "smb" {
 				Skip("skip when using smb")
 			}
 
