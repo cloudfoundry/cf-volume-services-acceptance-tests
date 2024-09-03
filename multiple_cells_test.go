@@ -27,7 +27,7 @@ var _ = Describe("when there are multiple Diego Cells", func() {
 
 		By("Pushing an app bound to a service")
 		enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
-		pushPoraNoStart(appName, false) // TODO: also test docker
+		pushPoraNoStart(appName, false)
 		createService(instanceName, testValues.validCreateServiceConfig)
 		bindAppToService(appName, instanceName, testValues.validBindConfigs[0])
 		startApp(appName)

@@ -62,7 +62,7 @@ var _ = BeforeSuite(func() {
 		createServiceConfigWithInvalidShare: `{"share": "//meow.smbtestserver.this.does.not.exist.cf.internal/vol"}`,
 		validBindConfigs: []string{
 			fmt.Sprintf(`{"username": "%s", "password": "%s", "domain": "foo"}`, pConfig.Username, pConfig.Password),
-			fmt.Sprintf(`{"username": "%s", "password": "%s"}`, pConfig.Username, pConfig.Password), // TODO pass user/pass thru config unsure if valid without domain
+			fmt.Sprintf(`{"username": "%s", "password": "%s"}`, pConfig.Username, pConfig.Password),
 			fmt.Sprintf(`{"username": "%s", "password": "%s", "mount": "/var/vcap/data/foo", "domain": "foo"}`, pConfig.Username, pConfig.Password),
 			fmt.Sprintf(`{"username": "%s", "password": "%s", "domain": "foo", "version": "3"}`, pConfig.Username, pConfig.Password),
 			fmt.Sprintf(`{"username": "%s", "password": "%s", "domain": "foo", "version": "3.1.1"}`, pConfig.Username, pConfig.Password),
@@ -84,19 +84,21 @@ var _ = BeforeSuite(func() {
 			`{"uid": "1000", "gid": "1000", "version": "4.2"}`,
 		},
 	}
+	ldapUser := "user1000"
+	ldapPassword := "secret" // these are hardcoded in nfstestldapserver
 	nfsLDAPTestValues = persiTestValues{
 		validCreateServiceConfig:            `{"share": "nfstestldapserver.service.cf.internal/export/users"}`,
-		secondAppValidBindConfig:            `{"username": "user2000", "password": "secret"}`, // TODO: this was added this user manually, need to add progomatically and pass value thru config
+		secondAppValidBindConfig:            `{"username": "user2000", "password": "secret"}`, // these are hardcoded in nfstestldapserver
 		bindConfigWithInvalidKeys:           `{"domain":"foo"}`,
 		bindConfigWithInvalidKeysFailure:    "Service broker error: - Not allowed options: domain",
 		createServiceConfigWithInvalidShare: `{"share": "nfstestldapserver.service.cf.internal/meow-meow-this-doesnt-exist", "username": "1000", "password": "secret"}`,
 		validBindConfigs: []string{
-			fmt.Sprintf(`{"username": "%s", "password": "%s"}`, pConfig.Username, pConfig.Password),
-			fmt.Sprintf(`{"username": "%s", "password": "%s", "mount": "/var/vcap/data/foo"}`, pConfig.Username, pConfig.Password),
-			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "3"}`, pConfig.Username, pConfig.Password),
-			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "4.0"}`, pConfig.Username, pConfig.Password),
-			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "4.1"}`, pConfig.Username, pConfig.Password),
-			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "4.2"}`, pConfig.Username, pConfig.Password),
+			fmt.Sprintf(`{"username": "%s", "password": "%s"}`, ldapUser, ldapPassword),
+			fmt.Sprintf(`{"username": "%s", "password": "%s", "mount": "/var/vcap/data/foo"}`, ldapUser, ldapPassword),
+			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "3"}`, ldapUser, ldapPassword),
+			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "4.0"}`, ldapUser, ldapPassword),
+			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "4.1"}`, ldapUser, ldapPassword),
+			fmt.Sprintf(`{"username": "%s", "password": "%s", "version": "4.2"}`, ldapUser, ldapPassword),
 		},
 	}
 

@@ -89,7 +89,6 @@ var _ = Describe("multiple apps uses volume services", func() {
 
 	Context("when a second app is bound with a readonly mount", func() {
 		BeforeEach(func() {
-			// if os.Getenv("TEST_READ_ONLY") == "true" { } // TODO: leaving for now as a reminder for other configs
 			By("Enabling serivice-access")
 			enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
 
@@ -126,7 +125,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 		DescribeTable("should include the volume mount as read only in the second application's environment",
 			func(testDocker bool) {
 				if testDocker && pConfig.ServiceName == "smb" {
-					Skip("don't run docker tests with smb") // TODO I think this is right?
+					Skip("don't run docker tests with smb")
 				}
 
 				By("Pushing a 2nd app")
