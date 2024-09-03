@@ -34,6 +34,7 @@ type persiTestValues struct {
 	bindConfigWithInvalidKeys           string
 	bindConfigWithInvalidKeysFailure    string
 	secondAppValidBindConfig            string
+	invalidCreateConfig                 string
 }
 
 func TestPersiAcceptance(t *testing.T) {
@@ -55,6 +56,7 @@ var _ = BeforeSuite(func() {
 	appPath = "assets/pora"
 
 	smbTestValues = persiTestValues{
+		invalidCreateConfig:                 `{"meow": "I don't have a share"}`,
 		validCreateServiceConfig:            `{"share": "//smbtestserver.service.cf.internal/vol"}`,
 		secondAppValidBindConfig:            `{}`,
 		bindConfigWithInvalidKeys:           `{"uid": "1000", "gid": "1000"}`,
@@ -70,6 +72,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	nfsTestValues = persiTestValues{
+		invalidCreateConfig:                 `{"meow": "I don't have a share"}`,
 		validCreateServiceConfig:            `{"share": "nfstestserver.service.cf.internal/export/users"}`,
 		secondAppValidBindConfig:            `{"uid":"5000","gid":"5000"}`,
 		bindConfigWithInvalidKeys:           `{"domain":"foo"}`,
@@ -87,6 +90,7 @@ var _ = BeforeSuite(func() {
 	ldapUser := "user1000"
 	ldapPassword := "secret" // these are hardcoded in nfstestldapserver
 	nfsLDAPTestValues = persiTestValues{
+		invalidCreateConfig:                 `{"meow": "I don't have a share"}`,
 		validCreateServiceConfig:            `{"share": "nfstestldapserver.service.cf.internal/export/users"}`,
 		secondAppValidBindConfig:            `{"username": "user2000", "password": "secret"}`, // these are hardcoded in nfstestldapserver
 		bindConfigWithInvalidKeys:           `{"domain":"foo"}`,
