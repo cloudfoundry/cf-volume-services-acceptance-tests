@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	ServiceName             string `json:"service_name"`
+	BrokerName              string `json:"broker_name"`
 	PlanName                string `json:"plan_name"`
 	IncludeIsolationSegment bool   `json:"include_isolation_segment"`
 	IncludeMultiCell        bool   `json:"include_multi_cell"`

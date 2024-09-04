@@ -41,7 +41,7 @@ var _ = Describe("Invalid Configs", func() {
 	Context("with a create config with invalid keys", func() {
 		It("fails to create", func() {
 			workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-				createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, "invalid-service", "-c", testValues.invalidCreateConfig).Wait(DEFAULT_TIMEOUT)
+				createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, "invalid-service", "-c", testValues.invalidCreateConfig, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
 				Expect(createService).NotTo(Exit(0))
 				Eventually(createService.Err).Should(Say("provision could not be completed"))
 			})
@@ -63,7 +63,6 @@ var _ = Describe("Invalid Configs", func() {
 		})
 	})
 
-	// TODO test more invalid configurations
 	Context("with a bind config with valid keys, but invalid values", func() {
 		BeforeEach(func() {
 			By("Creating an invalid service")

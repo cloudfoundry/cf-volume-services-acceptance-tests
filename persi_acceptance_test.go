@@ -87,7 +87,7 @@ func pushPoraNoStart(a string, dockerApp bool) {
 func createService(s, c string) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		Eventually(func() *Session {
-			createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, s, "-c", c).Wait(DEFAULT_TIMEOUT)
+			createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, s, "-c", c, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
 			Expect(createService).To(Exit(0))
 
 			serviceDetails := cf.Cf("service", s).Wait(DEFAULT_TIMEOUT)
