@@ -63,7 +63,7 @@ func eventuallyExpect(endpoint string, expectedSubstring string) string {
 
 func enableServiceAccess(serviceName, org string) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-		publishService := cf.Cf("enable-service-access", serviceName, "-o", org).Wait(DEFAULT_TIMEOUT)
+		publishService := cf.Cf("enable-service-access", serviceName, "-o", org, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
 		Expect(publishService).To(Exit(0))
 	})
 }

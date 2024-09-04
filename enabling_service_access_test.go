@@ -47,7 +47,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 			By("Testing enabling service-access")
 			workflowhelpers.AsUser(cfTestSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-				publishService := cf.Cf("enable-service-access", pConfig.ServiceName, "-o", cfTestSuiteSetup.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+				publishService := cf.Cf("enable-service-access", pConfig.ServiceName, "-o", cfTestSuiteSetup.RegularUserContext().Org, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
 				Expect(publishService).To(Exit(0))
 			})
 
