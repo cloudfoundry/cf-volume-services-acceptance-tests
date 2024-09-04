@@ -3,6 +3,7 @@ package persi_acceptance_test
 import (
 	"fmt"
 	persi_acceptance "persi_acceptance_test"
+	"strings"
 	"testing"
 	"time"
 
@@ -108,14 +109,16 @@ var _ = BeforeSuite(func() {
 		},
 	}
 
-	if pConfig.ServiceName == "nfs-ldap" {
-		testValues = nfsLDAPTestValues
-	} else if pConfig.ServiceName == "nfs" {
-		testValues = nfsTestValues
+	if pConfig.ServiceName == "nfs" {
+		if strings.Contains(pConfig.BrokerName, "ldap") {
+			testValues = nfsLDAPTestValues
+		} else {
+			testValues = nfsTestValues
+		}
 	} else if pConfig.ServiceName == "smb" {
 		testValues = smbTestValues
 	} else {
-		Expect(pConfig.ServiceName).To(BeElementOf([]string{"nfs-ldap", "nfs", "smb"}))
+		Expect(pConfig.ServiceName).To(BeElementOf([]string{"nfs", "smb"}))
 	}
 
 	if pConfig.IncludeIsolationSegment {
