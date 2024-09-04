@@ -94,11 +94,11 @@ var _ = BeforeSuite(func() {
 	ldapPassword := "secret" // these are hardcoded in nfstestldapserver
 	nfsLDAPTestValues = persiTestValues{
 		invalidCreateConfig:                 `{"meow": "I don't have a share"}`,
-		validCreateServiceConfig:            `{"share": "nfstestldapserver.service.cf.internal/export/users"}`,
+		validCreateServiceConfig:            `{"share": "nfstestserver.service.cf.internal/export/users"}`,
 		secondAppValidBindConfig:            `{"username": "user2000", "password": "secret"}`, // these are hardcoded in nfstestldapserver
 		bindConfigWithInvalidKeys:           `{"domain":"foo"}`,
 		bindConfigWithInvalidKeysFailure:    "Service broker error: - Not allowed options: domain",
-		createServiceConfigWithInvalidShare: `{"share": "nfstestldapserver.service.cf.internal/meow-meow-this-doesnt-exist", "username": "1000", "password": "secret"}`,
+		createServiceConfigWithInvalidShare: `{"share": "nfstestserver.service.cf.internal/meow-meow-this-doesnt-exist", "username": "1000", "password": "secret"}`,
 		validBindConfigs: []string{
 			fmt.Sprintf(`{"username": "%s", "password": "%s"}`, ldapUser, ldapPassword),
 			fmt.Sprintf(`{"username": "%s", "password": "%s", "mount": "/var/vcap/data/foo"}`, ldapUser, ldapPassword),
