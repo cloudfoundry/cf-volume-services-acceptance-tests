@@ -118,7 +118,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 				cf.Cf("delete-service", instanceName, "-f").Wait(DEFAULT_TIMEOUT)
 				cf.Cf("delete", appName, "-r", "-f").Wait(DEFAULT_TIMEOUT)
 				cf.Cf("delete", app2Name, "-r", "-f").Wait(DEFAULT_TIMEOUT)
-				cf.Cf("disable-service-access", pConfig.ServiceName, "-o", cfTestSuiteSetup.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+				cf.Cf("disable-service-access", pConfig.ServiceName, "-o", cfTestSuiteSetup.RegularUserContext().Org, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
 			})
 		})
 

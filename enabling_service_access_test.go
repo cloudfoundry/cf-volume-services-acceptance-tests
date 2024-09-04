@@ -14,7 +14,7 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 	Context("given a service broker", func() {
 		AfterEach(func() {
 			workflowhelpers.AsUser(cfTestSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
-				publishService := cf.Cf("disable-service-access", pConfig.ServiceName, "-o", cfTestSuiteSetup.RegularUserContext().Org).Wait(DEFAULT_TIMEOUT)
+				publishService := cf.Cf("disable-service-access", pConfig.ServiceName, "-o", cfTestSuiteSetup.RegularUserContext().Org, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
 				Expect(publishService).To(Exit(0))
 			})
 		})
