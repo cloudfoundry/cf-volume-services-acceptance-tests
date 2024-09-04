@@ -125,7 +125,7 @@ var _ = BeforeSuite(func() {
 		org := cfTestSuiteSetup.RegularUserContext().Org
 		isolationSegment := "persistent_isolation_segment"
 
-		workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+		workflowhelpers.AsUser(cfTestSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 			enableIso := cf.Cf("enable-org-isolation", org, isolationSegment).Wait(DEFAULT_TIMEOUT)
 			Expect(enableIso).To(Exit(0))
 
