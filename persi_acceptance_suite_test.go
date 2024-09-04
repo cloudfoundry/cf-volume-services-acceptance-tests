@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudfoundry/cf-acceptance-tests/helpers/v3_helpers"
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 	"github.com/cloudfoundry/cf-test-helpers/v2/config"
 	"github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers"
@@ -126,7 +125,8 @@ var _ = BeforeSuite(func() {
 		org := cfTestSuiteSetup.RegularUserContext().Org
 		isolationSegment := "persistent_isolation_segment"
 		workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-			v3_helpers.CreateOrGetIsolationSegment(isolationSegment)
+			createIso := cf.Cf("create-isolation-segment", isolationSegment).Wait(DEFAULT_TIMEOUT)
+			Expect(createIso).To(Exit(0))
 
 			enableIso := cf.Cf("enable-org-isolation", org, isolationSegment).Wait(DEFAULT_TIMEOUT)
 			Expect(enableIso).To(Exit(0))
