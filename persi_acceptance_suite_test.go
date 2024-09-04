@@ -124,10 +124,10 @@ var _ = BeforeSuite(func() {
 	if pConfig.IncludeIsolationSegment {
 		org := cfTestSuiteSetup.RegularUserContext().Org
 		isolationSegment := "persistent_isolation_segment"
-		workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-			createIso := cf.Cf("create-isolation-segment", isolationSegment).Wait(DEFAULT_TIMEOUT)
-			Expect(createIso).To(Exit(0))
+		createIso := cf.Cf("create-isolation-segment", isolationSegment).Wait(DEFAULT_TIMEOUT)
+		Expect(createIso).To(Exit(0))
 
+		workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 			enableIso := cf.Cf("enable-org-isolation", org, isolationSegment).Wait(DEFAULT_TIMEOUT)
 			Expect(enableIso).To(Exit(0))
 
