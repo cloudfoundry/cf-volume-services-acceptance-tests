@@ -121,6 +121,15 @@ var _ = BeforeSuite(func() {
 		Expect(pConfig.ServiceName).To(BeElementOf([]string{"nfs", "smb"}))
 	}
 
+})
+
+var _ = AfterSuite(func() {
+	if cfTestSuiteSetup != nil {
+		cfTestSuiteSetup.Teardown()
+	}
+})
+
+var _ = BeforeEach(func() {
 	if pConfig.IncludeIsolationSegment {
 		org := cfTestSuiteSetup.RegularUserContext().Org
 		isolationSegment := "persistent_isolation_segment"
@@ -132,12 +141,5 @@ var _ = BeforeSuite(func() {
 			defaultIso := cf.Cf("set-org-default-isolation-segment", org, isolationSegment).Wait(DEFAULT_TIMEOUT)
 			Expect(defaultIso).To(Exit(0))
 		})
-	}
-
-})
-
-var _ = AfterSuite(func() {
-	if cfTestSuiteSetup != nil {
-		cfTestSuiteSetup.Teardown()
 	}
 })
