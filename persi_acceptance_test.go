@@ -71,7 +71,7 @@ func enableServiceAccess(serviceName, org string) {
 func pushPoraNoStart(a string, dockerApp bool) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		if dockerApp {
-			EventuallyWithOffset(1, cf.Cf("push", a, "--docker-image", "cfpersi/pora", "--no-start", "--no-route"), DEFAULT_TIMEOUT).Should(Exit(0))
+			EventuallyWithOffset(1, cf.Cf("push", a, "--docker-image", "cloudfoundry/pora", "--no-start", "--no-route"), DEFAULT_TIMEOUT).Should(Exit(0))
 		} else {
 			EventuallyWithOffset(1, cf.Cf("push", a, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start", "--no-route"), DEFAULT_TIMEOUT).Should(Exit(0))
 		}

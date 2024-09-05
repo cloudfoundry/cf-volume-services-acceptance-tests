@@ -1,3 +1,3 @@
-module code.cloudfoundry.org/persi-acceptance-tests/assets/pora
+module pora
 
-go 1.13
+go 1.22
