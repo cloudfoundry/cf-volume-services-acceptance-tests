@@ -11,7 +11,10 @@ type Config struct {
 	ServiceName             string `json:"service_name"`
 	BrokerName              string `json:"broker_name"`
 	PlanName                string `json:"plan_name"`
+	AppsDomain              string `json:"apps_domain"`
 	IncludeIsolationSegment bool   `json:"include_isolation_segment"`
+	IsolationSegmentName    string `json:"isolation_segment_name"`
+	IsolationSegmentDomain  string `json:"isolation_segment_domain"`
 	IncludeMultiCell        bool   `json:"include_multi_cell"`
 	Username                string `json:"username"`
 	Password                string `json:"password"`

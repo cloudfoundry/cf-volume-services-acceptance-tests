@@ -20,7 +20,10 @@ var _ = Describe("multiple apps uses volume services", func() {
 	BeforeEach(func() {
 		instanceName, appName, readWriteAppURL = generateTestNames()
 		app2Name = appName + "-2"
-		app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
+		app2URL = "http://" + app2Name + "." + pConfig.AppsDomain
+		if pConfig.IncludeIsolationSegment {
+			app2URL = "http://" + app2Name + "." + pConfig.IsolationSegmentDomain
+		}
 	})
 
 	Context("when a second app is bound with a different uid and gid", func() {
@@ -72,7 +75,6 @@ var _ = Describe("multiple apps uses volume services", func() {
 
 				By("Starting the 2nd app")
 				startApp(app2Name)
-				app2URL = "http://" + app2Name + "." + cfConfig.AppsDomain
 
 				By("Testing that the 2nd app can read the file")
 				eventuallyExpect(fmt.Sprintf("%s/read/%s", app2URL, fname), "Hello Persistent World")

@@ -103,12 +103,25 @@ func bindAppToService(a, s, c string) {
 		Expect(bindResponse).To(Exit(0))
 
 		services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
-		Expect(services).To(Exit(0))
-		Expect(services).To(Say(s + "[^\\n]+" + pConfig.ServiceName + "[^\\n]+" + a))
+		ExpectWithOffset(1, services).To(Exit(0))
+		ExpectWithOffset(1, services).To(Say(s + "[^\\n]+" + pConfig.ServiceName + "[^\\n]+" + a))
+	})
+}
+
+func mapAppRoute(a string) {
+	domain := pConfig.AppsDomain
+	if pConfig.IncludeIsolationSegment {
+		domain = pConfig.IsolationSegmentDomain
+	}
+
+	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+		mapRouteResponse := cf.Cf("map-route", a, domain, "--hostname", a).Wait(LONG_TIMEOUT)
+		ExpectWithOffset(1, mapRouteResponse).To(Exit(0))
 	})
 }
 
 func startApp(a string) {
+	mapAppRoute(a)
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		bindResponse := cf.Cf("start", a).Wait(LONG_TIMEOUT)
 		Expect(bindResponse).To(Exit(0))
@@ -130,7 +143,10 @@ func generateTestNames() (instanceName, appName, appURL string) {
 	instanceName = uuid + "-" + instanceNameBase + parallelNode
 	appName = uuid + "-" + appNameBase + parallelNode
 
-	appHost := appName + "." + cfConfig.AppsDomain
+	appHost := appName + "." + pConfig.AppsDomain
+	if pConfig.IncludeIsolationSegment {
+		appHost = appName + "." + pConfig.IsolationSegmentDomain
+	}
 	appURL = "http://" + appHost
 
 	return instanceName, appName, appURL
