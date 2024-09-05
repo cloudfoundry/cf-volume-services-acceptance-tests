@@ -42,9 +42,6 @@ type persiTestValues struct {
 
 func TestPersiAcceptance(t *testing.T) {
 	RegisterFailHandler(Fail)
-	//TODO: is this needed?
-	SetDefaultEventuallyTimeout(5 * time.Second)
-
 	RunSpecs(t, "Cf Volume Services Acceptance Tests")
 }
 
