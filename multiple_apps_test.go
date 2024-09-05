@@ -112,7 +112,7 @@ var _ = Describe("multiple apps uses volume services", func() {
 
 		AfterEach(func() {
 			eventuallyExpect(fmt.Sprintf("%s/delete/%s", readWriteAppURL, fname), fname)
-			workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
+			workflowhelpers.AsUser(cfTestSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 				cf.Cf("logs", appName, "--recent").Wait(DEFAULT_TIMEOUT)
 				cf.Cf("logs", app2Name, "--recent").Wait(DEFAULT_TIMEOUT)
 				cf.Cf("unbind-service", appName, instanceName).Wait(DEFAULT_TIMEOUT)
