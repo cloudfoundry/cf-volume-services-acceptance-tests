@@ -46,15 +46,15 @@ func get(uri string, printErrors bool) (body string, status int, err error) {
 func eventuallyExpect(endpoint string, expectedSubstring string) string {
 	EventuallyWithOffset(1, func() int {
 		_, status, err := get(endpoint, printErrorsOn)
-		Expect(err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		return status
 	}, 5*time.Second, 1*time.Second).Should(Equal(http.StatusOK))
 
 	var body string
-	Eventually(func() string {
+	EventuallyWithOffset(1, func() string {
 		var err error
 		body, _, err = get(endpoint, printErrorsOn)
-		Expect(err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		return body
 	}, 5*time.Second, 1*time.Second).Should(ContainSubstring(expectedSubstring))
 
@@ -64,34 +64,34 @@ func eventuallyExpect(endpoint string, expectedSubstring string) string {
 func enableServiceAccess(serviceName, org string) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.AdminUserContext(), DEFAULT_TIMEOUT, func() {
 		publishService := cf.Cf("enable-service-access", serviceName, "-o", org, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
-		Expect(publishService).To(Exit(0))
+		ExpectWithOffset(1, publishService).To(Exit(0))
 	})
 }
 
 func pushPoraNoStart(a string, dockerApp bool) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		if dockerApp {
-			Eventually(cf.Cf("push", a, "--docker-image", "cfpersi/pora", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+			EventuallyWithOffset(1, cf.Cf("push", a, "--docker-image", "cfpersi/pora", "--no-start", "--no-route"), DEFAULT_TIMEOUT).Should(Exit(0))
 		} else {
-			Eventually(cf.Cf("push", a, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start"), DEFAULT_TIMEOUT).Should(Exit(0))
+			EventuallyWithOffset(1, cf.Cf("push", a, "-p", appPath, "-f", appPath+"/manifest.yml", "--no-start", "--no-route"), DEFAULT_TIMEOUT).Should(Exit(0))
 		}
 	})
 
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		marketplaceItems := cf.Cf("apps").Wait(DEFAULT_TIMEOUT)
-		Expect(marketplaceItems).To(Exit(0))
-		Expect(marketplaceItems).To(Say(a))
+		ExpectWithOffset(1, marketplaceItems).To(Exit(0))
+		ExpectWithOffset(1, marketplaceItems).To(Say(a))
 	})
 }
 
 func createService(s, c string) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
-		Eventually(func() *Session {
+		EventuallyWithOffset(1, func() *Session {
 			createService := cf.Cf("create-service", pConfig.ServiceName, pConfig.PlanName, s, "-c", c, "-b", pConfig.BrokerName).Wait(DEFAULT_TIMEOUT)
-			Expect(createService).To(Exit(0))
+			ExpectWithOffset(1, createService).To(Exit(0))
 
 			serviceDetails := cf.Cf("service", s).Wait(DEFAULT_TIMEOUT)
-			Expect(serviceDetails).To(Exit(0))
+			ExpectWithOffset(1, serviceDetails).To(Exit(0))
 			return serviceDetails
 		}, LONG_TIMEOUT, POLL_INTERVAL).Should(Say("create succeeded"))
 	})
@@ -100,7 +100,7 @@ func createService(s, c string) {
 func bindAppToService(a, s, c string) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		bindResponse := cf.Cf("bind-service", a, s, "-c", c).Wait(DEFAULT_TIMEOUT)
-		Expect(bindResponse).To(Exit(0))
+		ExpectWithOffset(1, bindResponse).To(Exit(0))
 
 		services := cf.Cf("services").Wait(DEFAULT_TIMEOUT)
 		ExpectWithOffset(1, services).To(Exit(0))
@@ -124,14 +124,14 @@ func startApp(a string) {
 	mapAppRoute(a)
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		bindResponse := cf.Cf("start", a).Wait(LONG_TIMEOUT)
-		Expect(bindResponse).To(Exit(0))
+		ExpectWithOffset(1, bindResponse).To(Exit(0))
 	})
 }
 
 func stopApp(a string) {
 	workflowhelpers.AsUser(cfTestSuiteSetup.RegularUserContext(), DEFAULT_TIMEOUT, func() {
 		bindResponse := cf.Cf("stop", a).Wait(LONG_TIMEOUT)
-		Expect(bindResponse).To(Exit(0))
+		ExpectWithOffset(1, bindResponse).To(Exit(0))
 	})
 }
 
