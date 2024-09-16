@@ -96,6 +96,7 @@ func write(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.WriteHeader(http.StatusOK)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write(body)
 	return
 }
@@ -139,6 +140,7 @@ func dataLoad(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusOK)
 	body := fmt.Sprintf("%d MiB written\n", totalIO)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte(body))
 	return
 }
@@ -161,6 +163,7 @@ func dataLoadCleanup(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusOK)
 	body := fmt.Sprintf("%d Files Removed\n", len(files))
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte(body))
 	return
 }
@@ -177,6 +180,7 @@ func createFile(res http.ResponseWriter, _ *http.Request) {
 	}
 
 	res.WriteHeader(http.StatusOK)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte(fileName))
 	return
 }
@@ -189,12 +193,15 @@ func readFile(res http.ResponseWriter, req *http.Request) {
 	body, err := os.ReadFile(mountPointPath)
 	if err != nil {
 		res.WriteHeader(http.StatusNotFound)
+		// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 		res.Write([]byte(err.Error()))
 		return
 	}
 
 	res.WriteHeader(http.StatusOK)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write(body)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte("instance index: " + os.Getenv("INSTANCE_INDEX")))
 	return
 }
@@ -207,17 +214,21 @@ func chmodFile(res http.ResponseWriter, req *http.Request) {
 	parsedMode, err := strconv.ParseUint(mode, 8, 32)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
+		// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 		res.Write([]byte(err.Error()))
 	}
 	err = os.Chmod(mountPointPath, os.FileMode(uint(parsedMode)))
 	if err != nil {
 		res.WriteHeader(http.StatusForbidden)
+		// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 		res.Write([]byte(err.Error()))
 		return
 	}
 
 	res.WriteHeader(http.StatusOK)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte(fileName + "->" + mode))
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte("instance index: " + os.Getenv("INSTANCE_INDEX")))
 	return
 }
@@ -230,11 +241,13 @@ func deleteFile(res http.ResponseWriter, req *http.Request) {
 	err := os.Remove(mountPointPath)
 	if err != nil {
 		res.WriteHeader(http.StatusForbidden)
+		// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 		res.Write([]byte(err.Error()))
 		return
 	}
 
 	res.WriteHeader(http.StatusOK)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte("deleted " + fileName))
 	return
 }
@@ -263,6 +276,8 @@ func randomString(n int) string {
 
 func writeError(res http.ResponseWriter, msg string, err error) {
 	res.WriteHeader(http.StatusInternalServerError)
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte(msg))
+	// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 	res.Write([]byte(err.Error()))
 }
