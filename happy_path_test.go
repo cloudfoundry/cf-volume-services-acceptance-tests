@@ -30,10 +30,6 @@ var _ = Describe("Cloud Foundry Persistence", func() {
 
 	DescribeTable("given one valid bind config, it can mount volumes",
 		func(testDocker bool) {
-			if testDocker && pConfig.ServiceName == "smb" {
-				Skip("don't run docker tests with smb")
-			}
-
 			By("Enabling service-access")
 			enableServiceAccess(pConfig.ServiceName, cfTestSuiteSetup.RegularUserContext().Org)
 

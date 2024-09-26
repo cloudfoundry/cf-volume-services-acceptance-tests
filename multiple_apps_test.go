@@ -126,10 +126,6 @@ var _ = Describe("multiple apps uses volume services", func() {
 
 		DescribeTable("should include the volume mount as read only in the second application's environment",
 			func(testDocker bool) {
-				if testDocker && pConfig.ServiceName == "smb" {
-					Skip("don't run docker tests with smb")
-				}
-
 				By("Pushing a 2nd app")
 				pushPoraNoStart(app2Name, testDocker)
 
