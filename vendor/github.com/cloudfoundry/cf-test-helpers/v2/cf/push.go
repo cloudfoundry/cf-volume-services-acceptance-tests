@@ -2,14 +2,14 @@ package cf
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega/gexec"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Manifest struct {
@@ -18,6 +18,7 @@ type Manifest struct {
 
 type Application struct {
 	Buildpacks []string `yaml:",omitempty"`
+	Stack      string   `yaml:",omitempty"`
 	Command    string   `yaml:",omitempty"`
 	Instances  int      `yaml:",omitempty"`
 	Memory     string   `yaml:",omitempty"`
@@ -27,7 +28,7 @@ type Application struct {
 }
 
 var Push = func(appName string, args ...string) *gexec.Session {
-	tmpDir, err := ioutil.TempDir("", "")
+	tmpDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		panic(err)
 	}
@@ -37,27 +38,32 @@ var Push = func(appName string, args ...string) *gexec.Session {
 	}
 
 	for i := 0; i < len(args); i += 2 {
-		switch args[i] {
+		flag := args[i]
+		flagValue := args[i+1]
+
+		switch flag {
 		case "-b":
-			app.Buildpacks = append(app.Buildpacks, args[i+1])
+			app.Buildpacks = append(app.Buildpacks, flagValue)
 		case "-c":
-			app.Command = args[i+1]
+			app.Command = flagValue
 		case "-d":
-			app.Routes = append(app.Routes, map[string]string{"route": fmt.Sprintf("%s.%s", appName, args[i+1])})
+			app.Routes = append(app.Routes, map[string]string{"route": fmt.Sprintf("%s.%s", appName, flagValue)})
 		case "-i":
-			instances, err := strconv.Atoi(args[i+1])
+			instances, err := strconv.Atoi(flagValue)
 			if err != nil {
 				panic(err)
 			}
 			app.Instances = instances
 		case "-m":
-			app.Memory = args[i+1]
+			app.Memory = flagValue
 		case "-p":
-			path, err := filepath.Abs(args[i+1])
+			path, err := filepath.Abs(flagValue)
 			if err != nil {
 				panic(err)
 			}
 			app.Path = path
+		case "-s":
+			app.Stack = flagValue
 		}
 	}
 
@@ -71,7 +77,7 @@ var Push = func(appName string, args ...string) *gexec.Session {
 	}
 
 	manifestPath := filepath.Join(tmpDir, "manifest.yml")
-	err = ioutil.WriteFile(manifestPath, manifestText, 0644)
+	err = os.WriteFile(manifestPath, manifestText, 0644)
 	if err != nil {
 		panic(err)
 	}
