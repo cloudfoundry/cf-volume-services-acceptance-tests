@@ -30,6 +30,7 @@ automated system uses, then we manually make the Pull Request as having a CLA on
 
 Initial Setup
 ---------------
+
 - Install docker
 
 - Add required directories
@@ -43,23 +44,40 @@ cd ~/workspace
 git clone https://github.com/cloudfoundry/wg-app-platform-runtime-ci.git
 
 # clone repo
-git clone https://github.com/cloudfoundry/<THIS_REPO>.git --recursive
-cd <THIS_REPO>
+git clone https://github.com/cloudfoundry/cf-volume-services-acceptance-tests.git --recursive
+cd cf-volume-services-acceptance-tests
+
 ```
+
+- Concourse and fly cli
 
 Running Tests
 ---------------
 
+> [!IMPORTANT]
+> You must set `CONFIG` environment variable pointing to a JSON file containing the credentials for CloudFoundry environment before running any test.
+> This is an example config
+> ```
+> {
+>   "admin_password": "$CF_ADMIN_PASSWORD",
+>   "admin_user": "admin",
+>   "api": "api.${CF_SYSTEM_DOMAIN}",
+>   "apps_domain": "${CF_SYSTEM_DOMAIN}",
+>   "default_timeout": 30,
+>   "skip_ssl_validation": true,
+>   "isolation_segment_name": "persistent_isolation_segment",
+>   "isolation_segment_domain": "iso-seg.${CF_SYSTEM_DOMAIN}",
+>   "isolation_segment_tcp_domain": "tcp.${CF_SYSTEM_DOMAIN}",
+>   "service_name": "${VOLUME_SERVICE_SERVICE_NAME:-}",
+>   "broker_name": "${VOLUME_SERVICE_BROKER_NAME:-}",
+>   "plan_name": "${VOLUME_SERVICE_PLAN_NAME:-}",
+>   "include_multi_cell": true,
+>   "include_isolation_segment": ${WITH_ISOSEG},
+>   "username": "${VOLUME_SERVICE_USERNAME:-}",
+>   "password": "${VOLUME_SERVICE_PASSWORD:-}"
+> }
+> ```
 
-- `./scripts/create-docker-container.bash`: This will create a docker container with appropriate mounts.
-- `./scripts/test-in-docker.bash`: Create docker container and run all tests and setup in a single script.
-  - `./scripts/test-in-docker.bash <package> <sub-package>`: For running tests under a specific package and/or sub-package
-
-> [!TIP]
-> If Running tests for this repo requires a DB flavor. The above scripts will default to mysql DB. Set DB environment variable for alternate DBs. Valid Options: mysql-8.0(or mysql),mysql-5.7,postgres
-
-When inside docker container:
-
-- `/repo/scripts/docker/test.bash`: This will run all tests in this repo
-- `/repo/scripts/docker/test.bash <package>`: This will only run a package's tests
-- `/repo/scripts/docker/test.bash <package> <sub-package>`: This will only run sub-package tests for package
+- `./scripts/create-docker-container.bash`: This will create a docker container with appropriate mounts. This
+script can be used for interactive development with a long running container. 
+- `./scripts/test-in-docker.bash`: Create docker container and to ensure go build passes
