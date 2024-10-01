@@ -1,4 +1,4 @@
-module persi_acceptance_test
+module code.cloudfoundry.org/cf-volume-services-acceptance-tests
 
 go 1.22.0
 
