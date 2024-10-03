@@ -1,7 +1,8 @@
-package persi_acceptance
+package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/cloudfoundry/cf-test-helpers/v2/config"
@@ -37,4 +38,8 @@ func LoadConfig() (Config, error) {
 	}
 
 	return *config, nil
+}
+
+func main() {
+	fmt.Println("run the test instead")
 }

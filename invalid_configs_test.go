@@ -1,4 +1,4 @@
-package persi_acceptance_test
+package main_test
 
 import (
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"

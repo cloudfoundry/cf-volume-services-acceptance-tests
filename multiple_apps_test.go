@@ -1,4 +1,4 @@
-package persi_acceptance_test
+package main_test
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package persi_acceptance_test
+package main_test
 
 import (
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Cloud Foundry Persistence", func() {
+var _ = Describe("Cloud Foundry Volume Services", func() {
 	var (
 		readWriteAppURL, appName, instanceName string
 	)

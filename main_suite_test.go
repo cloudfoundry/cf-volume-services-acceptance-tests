@@ -1,11 +1,12 @@
-package persi_acceptance_test
+package main_test
 
 import (
 	"fmt"
-	persi_acceptance "persi_acceptance_test"
 	"strings"
 	"testing"
 	"time"
+
+	vsat "code.cloudfoundry.org/cf-volume-services-acceptance-tests"
 
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 	"github.com/cloudfoundry/cf-test-helpers/v2/config"
@@ -17,7 +18,7 @@ import (
 
 var (
 	cfConfig         *config.Config
-	pConfig          persi_acceptance.Config
+	pConfig          vsat.Config
 	cfTestSuiteSetup *workflowhelpers.ReproducibleTestSuiteSetup
 
 	DEFAULT_TIMEOUT = 30 * time.Second
@@ -47,7 +48,7 @@ func TestPersiAcceptance(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	var err error
-	pConfig, err = persi_acceptance.LoadConfig()
+	pConfig, err = vsat.LoadConfig()
 	Expect(err).NotTo(HaveOccurred())
 	cfConfig = config.LoadConfig()
 	cfTestSuiteSetup = workflowhelpers.NewTestSuiteSetup(cfConfig)
