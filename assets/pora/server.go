@@ -32,8 +32,9 @@ func main() {
 	for _, port := range portArray {
 		go func(port string) {
 			server := &http.Server{
-				Addr:    fmt.Sprintf(":%s", port),
-				Handler: nil,
+				Addr:              fmt.Sprintf(":%s", port),
+				Handler:           nil,
+				ReadHeaderTimeout: 5 * time.Second,
 			}
 			errCh <- server.ListenAndServe()
 		}(port)
