@@ -221,7 +221,7 @@ func chmodFile(res http.ResponseWriter, req *http.Request) {
 		// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
 		res.Write([]byte(err.Error()))
 	}
-	err = os.Chmod(mountPointPath, os.FileMode(uint(parsedMode)))
+	err = os.Chmod(mountPointPath, os.FileMode(parsedMode))
 	if err != nil {
 		res.WriteHeader(http.StatusForbidden)
 		// #nosec - ignore errors writing http responses to avoid spamming logs in the event of a DoS
