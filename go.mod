@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/cloudfoundry/cf-test-helpers/v2 v2.13.0
 	github.com/google/uuid v1.6.0
-	github.com/onsi/ginkgo/v2 v2.26.0
+	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
 )
 
