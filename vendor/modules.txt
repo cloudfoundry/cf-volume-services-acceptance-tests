@@ -12,7 +12,7 @@ github.com/cloudfoundry/cf-test-helpers/v2/internal
 github.com/cloudfoundry/cf-test-helpers/v2/silentcommandstarter
 github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers
 github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers/internal
-# github.com/go-logr/logr v1.4.3
+# github.com/go-logr/logr v1.4.4
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
