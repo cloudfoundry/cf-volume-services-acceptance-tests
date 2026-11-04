@@ -28,7 +28,7 @@ func get(uri string, printErrors bool) (body string, status int, err error) {
 		return "", status, err
 	}
 
-	response, err := (&http.Client{}).Do(req)
+	response, err := (&http.Client{Timeout: DEFAULT_TIMEOUT}).Do(req)
 	if err != nil {
 		return "", status, err
 	}
