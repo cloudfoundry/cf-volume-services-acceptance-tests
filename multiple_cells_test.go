@@ -38,12 +38,19 @@ var _ = Describe("when there are multiple Diego Cells", func() {
 		// start a bunch of simultaneous requests to do file io
 		var wg sync.WaitGroup
 		stop := make(chan bool)
+		// stop the load even if the spec fails, so goroutines don't outlive this attempt
+		stopLoad := sync.OnceFunc(func() {
+			close(stop)
+			wg.Wait()
+		})
+		DeferCleanup(stopLoad)
+		loadTestURL := readWriteAppURL + "/loadtest"
 		wg.Add(10)
 		for i := 0; i < 10; i++ {
 			go func() {
 				defer wg.Done()
 				for {
-					get(readWriteAppURL+"/loadtest", printErrorsOff)
+					get(loadTestURL, printErrorsOff)
 					time.Sleep(100 * time.Millisecond)
 					select {
 					case <-stop:
@@ -64,8 +71,7 @@ var _ = Describe("when there are multiple Diego Cells", func() {
 		})
 
 		// signal our background load to stop and then wait for it
-		close(stop)
-		wg.Wait()
+		stopLoad()
 
 		eventuallyExpect(readWriteAppURL+"/read/"+fname, "Hello Persistent World")
 		eventuallyExpect(readWriteAppURL+"/delete/"+fname, fname)
